@@ -1,0 +1,122 @@
+---
+title: "Week2 - Exercises 4"
+author: "Nils"
+date: "20. September 2015"
+output: html_document
+---
+
+1. **Load the data set Seatbelts as part of the datasets package via data(Seatbelts). Use as.data.frame to convert the object to a dataframe. Fit a linear model of driver deaths with kms and PetrolPrice as predictors. Interpret your results.** 
+[Watch a video Solution](https://www.youtube.com/watch?v=xcJKPyiuSMo&index=37&list=PLpl-gQkQivXji7JK1OP1qS7zalwUBPrX0)
+
+```{r}
+library(datasets)
+data("Seatbelts")
+
+seatbelts <- as.data.frame(Seatbelts)
+
+head(seatbelts)
+
+x1 <- seatbelts$kms
+x2 <- seatbelts$PetrolPrice
+y <- seatbelts$DriversKilled
+fit1 <- lm(y ~ x1 + x2)
+
+round(summary(fit1)$coef, 4)
+````
+
+Intercept is here interpreted as number of drivers killed for 0 kilometers driven and 0 petrol price.  We need to center these around their respective means.
+
+```{r}
+x1 <- x1 - mean(x1)
+x2 <- x2 - mean (x2)
+
+fit <- lm(y ~ x1 + x2)
+
+round(summary(fit)$coef, 4)
+```
+
+Intercept is now interpreted as the number of deaths at the average distance driven and at the average petrol price.
+
+```{r}
+# Distance driven in kilometer
+summary(seatbelts$kms)
+
+# Petrol price in "Standard unit". British pounds relative to "some index"
+summary(seatbelts$PetrolPrice)
+```
+
+Use standard deviation to normalize petrol price, and divide distance by 1000 to get to reasonable increments
+
+```{r}
+x1 <- seatbelts$kms / 1000
+x1 <- x1 - mean(x1)
+
+x2 <- (seatbelts$PetrolPrice - mean (seatbelts$PetrolPrice)) / sd(seatbelts$PetrolPrice)
+
+fit <- lm(y ~ x1 + x2)
+
+round(summary(fit)$coef, 4)
+```
+
+The intercept is here the number of deaths at the average petrol price and the average distance driven.  X1 is the distance driven, and the model predicts that we will have `r round(fit$coefficients[2], 2)` *fewer* deaths for each additional 1000 kilometers driven.  X2 is gasoline price, and the model predicts we will have `r round(fit$coefficients[3], 2)` *fewer* deaths per unit of increase in the gasoline price.
+
+
+
+
+
+
+2. **Predict the number of driver deaths at the average kms and petrol levels.**
+
+```{r}
+predict(fit, newdata = data.frame(x1=0, x2=0))
+
+```
+
+This should be the same as the intercept for our centered model.
+
+Doing this directly without centering the data first:
+
+```{r}
+predict(lm(DriversKilled ~ kms + PetrolPrice, data=seatbelts), 
+        newdata = data.frame(kms=mean(seatbelts$kms), PetrolPrice=mean(seatbelts$PetrolPrice)))
+
+```
+
+
+
+3. **Take the residual for DriversKilled having regressed out kms and an intercept.  Fit a regression through the origin of the two residuals and show that it is the same as your coefficient obtained in question 1.**
+
+```{r}
+# Residual for DriversKilled having removed KMS and the intercept
+eDriversKilled_kms = resid(lm(DriversKilled ~ kms, data=seatbelts))
+ePetrolPrice_kms = resid(lm(PetrolPrice ~ kms, data=seatbelts))
+
+# Fit regression through the origin with the residuals
+sum(eDriversKilled_kms * ePetrolPrice_kms) / sum(ePetrolPrice_kms ^ 2)
+
+# Fit regressions through the origin using the models 
+round(summary(lm(eDriversKilled_kms ~ ePetrolPrice_kms - 1))$coef, 4)
+
+# Compare with the coefficient from question 1
+fit <- lm(DriversKilled ~ kms + PetrolPrice, data=seatbelts)
+round(summary(fit)$coef, 4)
+```
+
+
+
+4. **Take the residual for DriversKilled having regressed out PetrolPrice and an intercept. Take the residual for kms having regressed out PetrolPrice and an intercept. Fit a regression through the origin of the two residuals and show that it is the same as your coefficient obtained in question 1.**
+
+```{r}
+# Residual for DriversKilled having regressed out PetrolPrice and the intercept
+eDriversKilled_pp = resid(lm(DriversKilled ~ PetrolPrice, data=seatbelts))
+eKMS_pp = resid(lm(kms ~ PetrolPrice, data=seatbelts))
+
+# Fit regressions through the origin using the models 
+round(summary(lm(eDriversKilled_pp ~ eKMS_pp - 1))$coef, 4)
+
+
+# Compare with the coefficient from question 1
+fit <- lm(DriversKilled ~ kms + PetrolPrice, data=seatbelts)
+round(summary(fit)$coef, 4)
+```
+
