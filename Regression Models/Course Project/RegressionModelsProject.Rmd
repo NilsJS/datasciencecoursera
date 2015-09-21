@@ -1,0 +1,90 @@
+---
+title: "Regression Models - Course Project"
+author: "Nils Sandøy"
+date: "September 21, 2015"
+output: pdf_document
+includes:
+  in_header: mystyles.sty
+---
+
+```{r, results="hide", echo=FALSE}
+# Load libraries
+library(dplyr, quietly=TRUE, warn.conflicts = FALSE)
+suppressWarnings(library(scales, quietly=TRUE))
+suppressWarnings(library(pander, quietly=TRUE))
+library(ggplot2)
+suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
+
+library(datasets)
+```
+
+
+**Using the mtcars data set, answer the following two questions:**
+
+* "Is an automatic or manual transmission better for MPG"
+* "Quantify the MPG difference between automatic and manual transmissions"
+
+**Grading criteria:**
+
+* Did the student interpret the coefficients correctly?
+* Did the student do some exploratory data analyses?
+* Did the student fit multiple models and detail their strategy for model selection?
+* Did the student answer the questions of interest or detail why the question(s) is (are) not answerable?
+* Did the student do a residual plot and some diagnostics?
+* Did the student quantify the uncertainty in their conclusions and/or perform an inference correctly?
+* Was the report brief (about 2 pages long) for the main body of the report and no longer than 5 with supporting appendix of figures?
+* Did the report include an executive summary?
+* Was the report done in Rmd (knitr)?
+
+
+# Executive Summary
+
+# Exploratory Analysis
+```{r echo = FALSE}
+data(mtcars)
+
+mtcars$am = as.character(mtcars$am)
+automatic <- subset(mtcars, am == 1)
+manual <- subset(mtcars, am == 0)
+```
+
+The mtcars data set consists of `r nrow(mtcars)` rows, `r nrow(automatic)` with automatic and  `r nrow(manual)` with manual transmission.  Some key variables are:
+
+* **mpg** = Miles(US)/gallon
+* **am** = Transmission (0 = automatic, 1 = manual)
+* **hp** = Gross horsepower 
+* **wt** = Weight (lb/1000) 
+
+```{r echo = FALSE}
+# Combined scatterplot for the mtcars data, hp vs mpg
+g = ggplot(mtcars, aes(x=hp, y=mpg, colour = am, size = wt)) +
+    geom_point(alpha=.5) + 
+    geom_smooth(method = "lm", size = 2) +
+    geom_vline(xintercept = mean(automatic$hp), color = "cyan", alpha=.5) +
+    geom_hline(yintercept = mean(automatic$mpg), color = "cyan", alpha=.5) +
+    geom_vline(xintercept = mean(manual$hp), color = "salmon", alpha=.5) +
+    geom_hline(yintercept = mean(manual$mpg), color = "salmon", alpha=.5) +
+    xlab("HP") + 
+    ylab("Miles per gallon") + 
+    ggtitle("Automatic vs Manual")
+g
+```
+
+The above scatter plot shows automatic cars in cyan and manual in salmon, where the size of the dots indicate weight. Lighter automatic cars seem to cluster in the upper left quadrant, and are more fuel efficient than heavy manual cars which seem overly
+represented in the lower right quadrant.  An automatic car of average engine, `r round(mean(automatic$hp), 0)`hp, consumes `r round(mean(automatic$mpg), 2)`mpg, compared to manual cars of average engine, `r round(mean(manual$hp), 0)`hp, consumes `r round(mean(manual$mpg), 2)`mpg.  Manual cars do tend to have larger engines which do consume more fuel. From the scatterplot we also see that the confidence interval is much wider for automatic thatn it is for manual cars.
+
+```{r echo = FALSE}
+afit <- lm(mpg ~ I(hp - mean(hp)), automatic)
+panderOptions('table.split.table', Inf) 
+pander(summary(afit)$coef, style="rmarkdown", caption="LM Coefficients for Automatic")
+
+mfit <- lm(mpg ~ I(hp - mean(hp)), manual)
+panderOptions('table.split.table', Inf) 
+pander(summary(mfit)$coef, style="rmarkdown", caption="LM Coefficients for Manual")
+```
+
+An automatic car of average engine power, `r round(mean(automatic$hp), 0)`hp, uses `r round(mean(automatic$mpg),1)`mpg.  Lighter automatic cars seem to cluster in the upper left quadrant, and are more fuel efficient than heavy manual cars which seem overly represented in the lower right quadrant. 
+
+# Conclusion
+
+
