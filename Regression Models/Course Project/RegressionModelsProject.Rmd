@@ -70,20 +70,30 @@ g = ggplot(mtcars, aes(x=hp, y=mpg, colour = am, size = wt)) +
 g
 ```
 
-The above scatter plot shows automatic cars in cyan and manual in salmon, where the size of the dots indicate weight. Lighter automatic cars seem to cluster in the upper left quadrant, and are more fuel efficient than heavy manual cars which seem overly
-represented in the lower right quadrant.  An automatic car of average engine, `r round(mean(automatic$hp), 0)`hp, consumes `r round(mean(automatic$mpg), 2)`mpg, compared to manual cars of average engine, `r round(mean(manual$hp), 0)`hp, consumes `r round(mean(manual$mpg), 2)`mpg.  Manual cars do tend to have larger engines which do consume more fuel. From the scatterplot we also see that the confidence interval is much wider for automatic thatn it is for manual cars.
+The above scatter plot shows automatic cars in cyan and manual in salmon.  The size of the dots indicate weight. Lighter automatic cars seem to cluster in the upper left quadrant, and are more fuel efficient than heavy manual cars which seem overly represented in the lower right quadrant.  
 
 ```{r echo = FALSE}
 afit <- lm(mpg ~ I(hp - mean(hp)), automatic)
+acoef <- summary(afit)$coef
 panderOptions('table.split.table', Inf) 
-pander(summary(afit)$coef, style="rmarkdown", caption="LM Coefficients for Automatic")
+pander(acoef, style="rmarkdown", caption="LM Coefficients for Automatic (centered at mean hp)")
 
 mfit <- lm(mpg ~ I(hp - mean(hp)), manual)
+mcoef <- summary(mfit)$coef
 panderOptions('table.split.table', Inf) 
-pander(summary(mfit)$coef, style="rmarkdown", caption="LM Coefficients for Manual")
+pander(mcoef, style="rmarkdown", caption="LM Coefficients for Manual (centered at mean hp)")
 ```
 
-An automatic car of average engine power, `r round(mean(automatic$hp), 0)`hp, uses `r round(mean(automatic$mpg),1)`mpg.  Lighter automatic cars seem to cluster in the upper left quadrant, and are more fuel efficient than heavy manual cars which seem overly represented in the lower right quadrant. 
+An *automatic* car of average engine power, `r round(mean(automatic$hp), 0)` hp, runs `r round(mean(automatic$mpg), 2)` mpg, compared to *manual* cars of average engine power, `r round(mean(manual$hp), 0)`hp, runs `r round(mean(manual$mpg), 2)` mpg.  Manual cars do tend to have larger engines which do consume more fuel, but adding an additional HP of engine power to an automatic car will result in `r round(acoef[2,1], 4)` change in MPG, which is very similar to manual cars (`r round(mcoef[2,1], 4)`), assuming we ignore weight in this data set. 
+
+## MPG difference between autumatic and manual transmission
+| Transmission type | MPG difference per added HP |
+|:-----------------:|:---------------------------:|
+| Automatic         | `r round(acoef[2,1], 4)`    |
+| Manual            | `r round(mcoef[2,1], 4)`    |
+
+From the slope alone there is not much difference in fuel efficiency between the transmission types, but from the scatterplot we see that the confidence interval is much wider for automatic than it is for manual cars, this is because of the wider spread in values.  An investigation into the residuals will show the difference here.
+
 
 # Conclusion
 
