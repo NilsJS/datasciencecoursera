@@ -1,0 +1,89 @@
+---
+title: "Tooth Growth Analysis"
+output: pdf_document
+---
+
+---
+```{r Load libraries, results="hide", echo=FALSE}
+suppressWarnings(library(dplyr, quietly=TRUE, warn.conflict=FALSE))
+library(scales)
+library(datasets)
+```
+
+Emploration of the R ToothGrowth data set, which tracks the effect of vitamin C on tooth growth in guinea pigs. The response is the length of odontoblasts (teeth) in each of 10 guinea pigs at each of three dose levels of Vitamin C (0.5, 1, and 2 mg) with each of two delivery methods: orange juice (**OJ**), or ascorbic acid (**VC**).
+
+### 1. Basic exploratory data analysis 
+```{r echo=TRUE}
+data("ToothGrowth")
+head(ToothGrowth)
+```
+
+We have 10 samples per dose for each of the two supplements.  Below is a histogram that gives an idea of the spread in tooth length for each of the 6 supplement:dose combinations.  As we can see the number of observations is small, and it is not really clear whether they have a normal distribution.  **Assumption:** the data has a normal distribution. 
+
+```{r echo=FALSE}
+par(mar=c(4,4,2,2))
+par(mfrow=c(2, 3))
+for(s in c("VC", "OJ")) for(d in c(0.5, 1.0, 2.0)) hist(ToothGrowth[ToothGrowth$supp == s & ToothGrowth$dose == d, ]$len, xlab = paste(s, ":", d), main = NULL, breaks=10)
+```
+
+### 2. Basic summary of the data.
+
+```{r}
+tg_oj <- subset(ToothGrowth, supp == "OJ")
+tg_vc <- subset(ToothGrowth, supp == "VC")
+tg_vc$difference = tg_vc$len - tg_oj$len
+tg_oj$difference = tg_oj$len - tg_vc$len
+
+n <- 10
+tg_oj <- summarise(group_by(tg_oj, Supplement = supp, Dose = dose), 
+                   MeanToothLength = mean(len), MeanDiff = mean(difference), 
+                   SDDiff = sd(difference), N=length(len))
+tg_vc <- summarise(group_by(tg_vc, Supplement = supp, Dose = dose), 
+                   MeanToothLength = mean(len), MeanDiff = mean(difference), 
+                   SDDiff = sd(difference), N=length(len))
+tg_oj
+tg_vc
+```
+
+Here we see the two groups, one that received vitamin C through asorbic acid (supp = "VC"), and a group that received vitamin C in orange juice (supp = "OJ").  We also see that the average toot length increases with the dose, and finally that average growth with asorbic acid only eceeds orange juice at the 2 mg dose.  
+
+### 3. Comparison of average tooth growth by Supplement and Dose
+
+#### Using mean tooth length as the comparison
+```{r}
+tga <- summarise(group_by(ToothGrowth, Supplement = supp, Dose = dose), 
+                Mean = mean(len), N = length(len), SD = sd(len))
+
+tgt <- summarise(group_by(tga, Supplement, Dose, Mean), 
+                 Interval = qnorm(0.95)*SD/sqrt(N))
+summarise(group_by(tgt, Supplement, Dose, Mean), 
+          LowerConf = round(Mean - Interval, 2) , 
+          UpperConf = round(Mean + Interval, 2))
+```
+
+The above summay shows average tooth growth grouped by supplement and dose. It also includes the lower and upper boundaries for the 95% confidence interval of that mean.  This boxplot below illustrates this data:  
+
+```{r echo=FALSE}
+boxplot(len~supp*dose, 
+        data=ToothGrowth, 
+        notch=FALSE, 
+        col=(c("red", "green")), 
+        main="Tooth Growth", 
+        xlab="Supplement and Dose")
+```
+
+#### Using mean growth difference as the comparison
+```{r}
+tg_oj_s <- summarise(group_by(tg_oj, Supplement, Dose, MeanDiff), 
+                     Interval = qnorm(0.95)*SDDiff/sqrt(N))
+summarise(group_by(tg_oj_s, Supplement, Dose, MeanDiff), 
+          LowerConf = round(MeanDiff - Interval, 2) , 
+          UpperConf = round(MeanDiff + Interval, 2))
+```
+
+
+
+# 4. Conclusions. 
+
+The basic rule of thumb is that $\frac{1}{\sqrt{n}}$ gives us a margin of error.  Each supplement only have 10 data points for each dose, which gives a vey high margin of error: **`r percent(1/sqrt(10))`**.  I am basing my conclusion on the assumption that the data has a **normal distribution**.  That said it seems that OJ is the most effective supplement for promoting tooth growth, and since the mean at 2 mg for OJ is included in the upper confidence level for 1.0 mg of OJ it may be that **the optimal dose is 1mg of orange** juice, __assuming__ we want to maximize the effect and minimize the dose.
+

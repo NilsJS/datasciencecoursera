@@ -1,0 +1,59 @@
+---
+title: "Tooth Growth Analysis"
+output: pdf_document
+---
+
+---
+```{r Load libraries, results="hide", echo=FALSE}
+suppressWarnings(library(dplyr, quietly=TRUE, warn.conflict=FALSE))
+library(scales)
+library(datasets)
+```
+
+Emploration of the R ToothGrowth data set, which tracks the effect of vitamin C on tooth growth in guinea pigs. The response is the length of odontoblasts (teeth) in each of 10 guinea pigs at each of three dose levels of Vitamin C (0.5, 1, and 2 mg) with each of two delivery methods: orange juice (**OJ**), or ascorbic acid (**VC**).
+
+### 1. Basic exploratory data analysis 
+```{r echo=TRUE}
+data("ToothGrowth")
+
+summarise(group_by(ToothGrowth, supp, dose), mean = mean(len), N=length(len))
+```
+
+We have 10 samples per dose for each of the two supplements.  I note that the average toot length increases with the dose for both supplements and that average growth with asorbic acid only eceeds orange juice at the 2 mg dose.
+
+### 2. Basic summary of the data.
+```{r}
+boxplot(len~supp*dose, 
+        data=ToothGrowth, 
+        notch=FALSE, 
+        col=(c("red", "green")), 
+        main="Tooth Growth", 
+        xlab="Supplement and Dose")
+```
+
+Above is a boxplot that gives an idea of the spread in tooth length for each of the 6 supplement:dose combinations.  From this plot it seems OJ has the largest impact in 0.5 and 1mg doses, and that the mean growth for OJ is outside the VC confidence interval in both doses. 
+
+### 3. Comparison of average tooth growth by Supplement and Dose
+The number of observations is small, and it is not really clear whether they have a normal distribution.  I compare the supplements separately for each of the three different doses using a t-test. 
+
+```{r}
+# Dose 0.5 mg
+t.test(len ~ supp, paried=FALSE, var.equal=TRUE, subset(ToothGrowth, dose == 0.5))
+# Dose 1.0 mg
+t.test(len ~ supp, paried=FALSE, var.equal=TRUE, subset(ToothGrowth, dose == 1.0))
+# Dose 2.0 mg
+t.test(len ~ supp, paried=FALSE, var.equal=TRUE, subset(ToothGrowth, dose == 2.0))
+```
+
+# 4. Conclusions. 
+**Assumptions**: The data has a **normal distribution**, with a constant variance accross the two groups, and the subjects are relevant samples of the guinea pig population.  
+
+**The null hyphothesis** ($H_0$) is that the means of the two supplements are the same. The alternative hypothesis ($H_a$) is that the means are different. $H_0$ is rejected a p-values less than 5% (i.e. the chance of getting such a mean, or one more etreme, is very unlikely, given $H_0$).
+
+Dose  | p-value | Conclusion
+------|---------|---------------
+0.5mg | < 5%    | $H_0$ **rejected**
+1.0mg | < 5%    | $H_0$ **rejected**.
+2.0mg | > 5%    | $H_0$ **not rejected**.
+
+I state that at the dose of 0.5 and 1.0 mg OJ is more effective than VC for promoting tooth growth. 

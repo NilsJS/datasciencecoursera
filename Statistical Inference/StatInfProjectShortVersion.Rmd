@@ -1,0 +1,104 @@
+---
+title: "Exponential Distributions vs the Central Limit Theorem"
+author: "Nils Sandøy"
+date: "August 20, 2015"
+output: pdf_document
+includes:
+  in_header: mystyles.sty
+---
+
+```{r Load libraries, results="hide", echo=FALSE}
+library(ggplot2)
+suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
+```
+
+This is a course project for the Coursera class in Statistical Inference.  The goal of this project is to investigate the [Exponential Distribution](https://en.wikipedia.org/wiki/Exponential_distribution) and make a comparison with the [Central Limit Theorem (CLM)](https://en.wikipedia.org/wiki/Central_limit_theorem). Ref Appendix 1. for details.
+
+I will show that, when using the average of many simulations of the exponential distribution, the sample mean approximates the theoretical mean, the sample variance approximates the theoretical variance, and the distribution of the sample means is normal. 
+
+## Illustration of  the properties of the distribution of the mean of exponentials.  
+
+```{r}
+lambda <- 0.2
+n <- 40
+theoretical_mean <- 1/lambda
+theoretical_variance <- 1/(lambda^2)
+nosim <- 1000
+
+dist <- matrix(nrow=nosim, ncol=n)
+for (i in 1:nosim) dist[i,] <- rexp(n, lambda)
+
+means <-apply(dist, MARGIN=1, FUN=mean)
+variances <- apply(dist, MARGIN=1, FUN=var)
+
+sample_mean <- mean(means)
+sample_variance <- mean(variances)
+```
+
+Here I have run `r nosim` simulations each generating `r n` random exponentials.  $\lambda$ is set to **0.2** for all simulations.  I have also calculated the the mean and variance of each of these simulations. Finally I calculate the **sample mean**, `r sample_mean`, and **sample variance**, `r sample_variance` accross all these `r nosim` simulations. 
+
+## Comparison of **sample mean & variance** to the **theoretical mean & variance** of the distribution.
+
+```{r echo=FALSE}
+p1 <- ggplot(data.frame(Means = c(means)), aes(x = Means)) + 
+    geom_histogram(binwidth=0.2, aes(y = ..density.., fill=..density..)) 
+p1 <- p1 + geom_vline(xintercept=sample_mean, color="red")
+p1 <- p1 + geom_vline(xintercept=theoretical_mean, color="green", linetype="longdash")
+p1 <- p1 + geom_density()
+p1 <- p1 + guides(fill=FALSE)
+
+p2 <- ggplot(data.frame(Variance = c(variances)), aes(x = Variance)) + 
+    geom_histogram(binwidth=2, aes(y = ..density.., fill=..density..)) 
+p2 <- p2 + geom_vline(xintercept=sample_variance, color="red")
+p2 <- p2 + geom_vline(xintercept=theoretical_variance, color="green", linetype="longdash")
+p2 <- p2 + geom_density()
+p2 <- p2 + guides(fill=FALSE)
+
+grid.arrange(p1, p2, ncol=2)
+```
+
+The left histogram above shows the means of each of the `r nosim` simulations with $n=$ `r n`. The red sample mean, the average of the individual means of each of the `r nosim` samples, is very close to the theoretical mean ($\frac{1}{\lambda}$) of **`r theoretical_mean`** shown in green.  **This corresponds with the CLT which predicts that the sample mean will approximate the theoretical mean when we do many simulations.**
+
+Similarly in the right histogram we have plotted the distribution of the variance of each of the `r nosim`simulations. The average variance, shown as a red vertical line, is $Var(\bar{X}) = \frac{\sigma^2}{n} =$ **`r sample_variance`**, which is close to the theoretical variance (green line) of $Var(X) = \frac{1}{\lambda^2}$ = **`r theoretical_variance`**.  **This confirms again the CLT by showing that, when running many simulations, the sample variance estimates the population variance.**
+
+## Show that the distribution of the means of the simulations is approximately [normal](https://en.wikipedia.org/wiki/Normal_distribution).
+
+```{r, echo=FALSE}
+p1 = ggplot(data.frame(SampleMeans=c(means)), aes(x = SampleMeans)) + 
+    geom_histogram(binwidth=.2, aes(y = ..density.., fill=..density..)) +
+        stat_function(fun = dnorm, size = 2, color="red", args=list(mean=theoretical_mean))
+p1 <- p1 + geom_density()
+p1 <- p1 + guides(fill=FALSE)
+
+p2 = ggplot(data.frame(RandomExponentials=c(rexp(nosim, lambda))), aes(x = RandomExponentials)) + 
+    geom_histogram(binwidth=.2, aes(y = ..density.., fill=..density..)) +
+        stat_function(fun = dnorm, size = 2, color="red", args=list(mean=theoretical_mean))
+p2 <- p2 + geom_density()
+p2 <- p2 + guides(fill=FALSE)
+
+
+grid.arrange(p2, p1, ncol=2)
+
+```
+
+This is a comparison of the normal distribution, drawn in red, with the distribution of `r nosim` random exponentials, contrasted with the distribution of the simulation/sample means (average of `r nosim` simulations of sice n=`r n`).  It is clear that the distribution of the simulation means is more "bell shaped" than the distribution of `r nosim` random exponentials. I conclude that **when running many simulations the distribution of the sample mean for these simulations is normal**
+
+
+# Appendix 1: Short definition of the CLT and the Exponential distribution
+
+The **CLT** states that the distribution of averages of **independent** and **identically** **distributed** (**iid**) variables (properly normalized) becomes that of a standard normal as the sample size increases. The result is The result is that $$\frac{\bar X_n - \mu}{\sigma / \sqrt{n}}= \frac{\sqrt n (\bar X_n - \mu)}{\sigma} = \frac{\mbox{Estimate} - \mbox{Mean of estimate}}{\mbox{Std. Err. of estimate}}$$ has a distribution like that of a standard normal for large $n$. A useful way to think about the CLT is that $\bar X_n$ is approximately $N(\mu, \sigma^2 / n)$
+
+The **Exponental Distribution** is the probability distribution that describes the time between events in a **Poisson process**, in which events occur continuosly and independently at a constant average rate.
+
+The **probability density function** (PDF) of an exponential function is $$
+f(x;\lambda)=\begin{Bmatrix}
+ \lambda \mathrm{e}^{-\lambda x} & x>=0. \\
+ 0                        & x<0.
+\end{Bmatrix}
+$$
+
+The mean or expected value of an exponential distribution is $$E[X] = \frac{1}{\lambda} = \beta$$
+
+The standard deviation ($\sigma$) is equal to the mean ($\frac{1}{\lambda}$), as the variance of $X$ is given by $$Var[X] = \frac{1}{\lambda^2}$$
+
+The exponential distribution with rate $\lambda$ has density $$f(x)=\lambda{\mathrm{e}}^{-\lambda x}$$
