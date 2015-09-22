@@ -86,13 +86,44 @@ pander(mcoef, style="rmarkdown", caption="LM Coefficients for Manual (centered a
 
 An *automatic* car of average engine power, `r round(mean(automatic$hp), 0)` hp, runs `r round(mean(automatic$mpg), 2)` mpg, compared to *manual* cars of average engine power, `r round(mean(manual$hp), 0)`hp, runs `r round(mean(manual$mpg), 2)` mpg.  Manual cars do tend to have larger engines which do consume more fuel, but adding an additional HP of engine power to an automatic car will result in `r round(acoef[2,1], 4)` change in MPG, which is very similar to manual cars (`r round(mcoef[2,1], 4)`), assuming we ignore weight in this data set. 
 
-## MPG difference between autumatic and manual transmission
-| Transmission type | MPG difference per added HP |
-|:-----------------:|:---------------------------:|
-| Automatic         | `r round(acoef[2,1], 4)`    |
-| Manual            | `r round(mcoef[2,1], 4)`    |
+From the slope alone there is not much difference in fuel efficiency between the transmission types, but from the scatterplot we see that the confidence interval is much wider for automatic than it is for manual cars.The below plot of the residuals will shows the difference in spread here.
 
-From the slope alone there is not much difference in fuel efficiency between the transmission types, but from the scatterplot we see that the confidence interval is much wider for automatic than it is for manual cars, this is because of the wider spread in values.  An investigation into the residuals will show the difference here.
+```{r echo = FALSE}
+automatic$Residual <- resid(afit) 
+manual$Residual <- resid(mfit) 
+
+ga = ggplot(automatic, aes(x=hp, y=Residual, size = wt)) +
+    geom_point(alpha=.5, color = "cyan") + 
+    geom_hline(yintercept = 0, color = "black") +
+    ggtitle("Automatic Residuals")
+#    xlab("HP") + 
+#    ylab("Miles per gallon") + 
+
+gm = ggplot(manual, aes(x=hp, y=Residual, size = wt)) +
+    geom_point(alpha=.5, color = "salmon") + 
+    geom_hline(yintercept = 0, color = "black") +
+    ggtitle("Manual Residuals")
+
+grid.arrange(ga, gm, nrow=2)
+
+```
+
+```{r}
+# Confidence interval for the intercept and the slope
+aintercept_ci <- acoef[1,1] + c(1,-1)*qt(.975, df=afit$df) * acoef[1,2]
+aslope_ci <- acoef[2,1] + c(1,-1)*qt(.975, df=afit$df) * acoef[2,2]
+
+mintercept_ci <- mcoef[1,1] + c(1,-1)*qt(.975, df=mfit$df) * mcoef[1,2]
+mslope_ci <- mcoef[2,1] + c(1,-1)*qt(.975, df=mfit$df) * mcoef[2,2]
+```
+
+## MPG difference between automatic and manual transmission
+
+| Transmission type | MPG $\Delta$ per added HP | Conf int (slope) | $\sigma$ / Residual variability |
+|:-----------------:|:---------------------------:|:---------------:|:-----------------:|
+| Automatic         | `r round(acoef[2,1], 4)`    |  (`r round(aslope_ci[1], 4)`;  `r round(aslope_ci[2], 4)`)  | `r round(summary(afit)$sigma, 4)`  |
+| Manual            | `r round(mcoef[2,1], 4)`    | (`r round(mslope_ci[1], 4)`; `r round(mslope_ci[2], 4)`)  | `r round(summary(mfit)$sigma, 4)`  |
+
 
 
 # Conclusion
