@@ -53,6 +53,10 @@ The mtcars data set consists of `r nrow(mtcars)` rows, `r nrow(automatic)` with 
 
 The above scatter plot has cars with automatic transmission in cyan and those with manual in salmon.  The x axis indicates engine power (hp) and the size of the dots indicate weight. Lighter automatic cars seem to cluster in the upper left quadrant, and are more fuel efficient than heavy manual cars which seem overly represented in the lower right quadrant.  
 
+* $H_0$ : mpg for automatic transmission $=$ mpg for manual transmission
+* $H_a$ : mpg for automatic transmission $\ne$ mpg for manual transmission
+
+
 ## Regression Models
 
 ```{r}
@@ -77,7 +81,7 @@ pander(coef2, style="rmarkdown") #, caption="Model 2 Coefficients for mpg by tra
 ```
 
 #### Model 2
-As the initial exploration indicated, engine power (hp) does seem to have an impact, as more cars with large engines had manual transmission. The *fit2* model accounts for that, and we can see that engine size does have a negatively impact.  Adding one hp decreases mpg by `r abs(round(coef2[3,1], 3))` mpg.  The effect of an automatic will now gain you `r round(coef2[2,1], 3)` mpg, providing hp stays the same.
+As the initial exploration indicated, engine power (hp) does seem to have an impact, as more cars with large engines had manual transmission. The *fit2* model accounts for that, and we can see that engine size does negatively impact fuel efficiency.  Adding one hp decreases fuel efficiency by `r abs(round(coef2[3,1], 3))` mpg.  The effect of an automatic will now gain you `r round(coef2[2,1], 3)` mpg, providing hp stays the same.
 
 ```{r echo = FALSE}
 coef3 <- summary(fit3)$coef
@@ -86,9 +90,74 @@ pander(coef3, style="rmarkdown") #, caption="Model 3 Coefficients for mpg by tra
 ```
 
 #### Model 3
-Heavy cars often come with large engines and many of these have manual transmission. The *fit3* model accounts for weight *wt* as well as engine power *hp*.  We see that this matches our intuition so that adding 1000lb of weight has a reduces mpg by `r round(coef3[4,1], 3)` mpg. Adding this third factor, lessens the impact on the other two, so that adding one hp decreases mpg by `r abs(round(coef3[3,1], 3))` mpg, and finally an automatic transmission will gain you `r round(coef3[2,1], 3)` mpg, provided hp and wt stays the same.
+Heavy cars often come with large engines and many of these have manual transmission. The *fit3* model accounts for weight *wt* as well as engine power *hp*.  We see that adding 1000lb of weight reduces mpg by `r abs(round(coef3[4,1], 3))`. Adding this third factor, reduces the impact of the other two, so that adding one hp now decreases mpg by `r abs(round(coef3[3,1], 3))`, and finally an automatic transmission will only gain you `r round(coef3[2,1], 3)` mpg, provided hp and wt stays the same. 
+
+```{r echo = FALSE}
+# Confidence interval for the intercept and the slope
+coef <- summary(fit3)$coef
+am_ci <- coef[2,1] + c(1,-1)*qt(.975, df=fit3$df) * coef[2,2]
+hp_ci <- coef[3,1] + c(1,-1)*qt(.975, df=fit3$df) * coef[3,2]
+wt_ci <- coef[4,1] + c(1,-1)*qt(.975, df=fit3$df) * coef[4,2]
+```
+
+**However:** adding more factors to our model has also increased the *p-value* for am to `r round(coef3[2,4], 3)` so that it now exceeds the customary cutof of 0.05.  **We therefore cannot reject $H_0$ using this model.**  The confidence interval for the slope of the am predictor  (`r round(am_ci[1], 4)` ;  `r round(am_ci[2], 4)`) includes 0 which means it may have no impact.  The residual variability $\sigma$ is `r round(summary(fit3)$sigma, 4)`, and the residual plot in the appendix also shows that there is quite a wide spread, particularly for automatic.  This indicates that our model is a bad fit or that we simply do not have enough data in our sample.
+
+# Appendix : plots
+
+```{r echo = FALSE}
+#windows.options(width=10, height=10)
+
+mtcars$am = as.character(mtcars$am)
+g3 = ggplot(mtcars, aes(x=hp, y=mpg, color = am, size = wt)) +
+    geom_point(alpha=.5) + 
+    geom_smooth(method = "lm", size = 2) +
+    geom_vline(xintercept = mean(automatic$hp), color = "cyan", alpha=.5) +
+    geom_hline(yintercept = mean(automatic$mpg), color = "cyan", alpha=.5) +
+    geom_vline(xintercept = mean(manual$hp), color = "salmon", alpha=.5) +
+    geom_hline(yintercept = mean(manual$mpg), color = "salmon", alpha=.5) +
+    xlab("HP") + 
+    ylab("Miles per gallon") + 
+    ggtitle("Model3: Automatic vs Manual by HP & Weight")
+
+g3
+#grid.arrange(g1, g2, g3, nrow=3)
+
+mtcars$Residual <- resid(fit3) 
+g4 = ggplot(mtcars, aes(x=hp, y=Residual, size = wt, color = am)) +
+    geom_point(alpha=.5) + 
+    geom_hline(yintercept = 0, color = "black") 
+#    ggtitle("Residuals")
+#    xlab("HP") + 
+#    ylab("Miles per gallon") + 
+
+g4
+```
+
+```{r echo = FALSE}
+mtcars$am = as.character(mtcars$am)
+g1 = ggplot(mtcars, aes(x=am, y=mpg, color = am)) +
+    geom_point(alpha=.5) + 
+    geom_hline(yintercept = mean(automatic$mpg), color = "cyan", alpha=.5) +
+    geom_hline(yintercept = mean(manual$mpg), color = "salmon", alpha=.5) +
+#    geom_abline(yintercept = 10, slope = coef1[2,1], color = "black", size = 2) +
+    xlab("Transmission type (0 = manual, 1 = automatic)") + 
+    ylab("Miles per gallon") + 
+    ggtitle("Model 1: Automatic vs Manual, with means")
+
+```
+
+```{r echo = FALSE}
+g2 = ggplot(mtcars, aes(x=hp, y=mpg, color = am)) +
+    geom_point(alpha=.5) + 
+    geom_smooth(method = "lm", size = 2) +
+    xlab("HP") + 
+    ylab("Miles per gallon") + 
+    ggtitle("Model 2: Automatic vs Manual by HP")
+
+```
 
 
+# Initial draft
 ```{r echo = FALSE}
 afit <- lm(mpg ~ I(hp - mean(hp)), automatic)
 acoef <- summary(afit)$coef
@@ -144,47 +213,6 @@ mslope_ci <- mcoef[2,1] + c(1,-1)*qt(.975, df=mfit$df) * mcoef[2,2]
 | Automatic         | `r round(acoef[2,1], 4)`    |  (`r round(aslope_ci[1], 4)`;  `r round(aslope_ci[2], 4)`)  | `r round(summary(afit)$sigma, 4)`  |
 | Manual            | `r round(mcoef[2,1], 4)`    | (`r round(mslope_ci[1], 4)`; `r round(mslope_ci[2], 4)`)  | `r round(summary(mfit)$sigma, 4)`  |
 
-
-
-# Appendix : plots
-
-
-```{r echo = FALSE}
-mtcars$am = as.character(mtcars$am)
-g = ggplot(mtcars, aes(x=am, y=mpg, color = am)) +
-    geom_point(alpha=.5) + 
-    geom_hline(yintercept = mean(automatic$mpg), color = "cyan", alpha=.5) +
-    geom_hline(yintercept = mean(manual$mpg), color = "salmon", alpha=.5) +
-#    geom_abline(yintercept = 10, slope = coef1[2,1], color = "black", size = 2) +
-    xlab("Transmission type (0 = manual, 1 = automatic)") + 
-    ylab("Miles per gallon") + 
-    ggtitle("Model 1: Automatic vs Manual, with means")
-g
-```
-
-```{r echo = FALSE}
-g = ggplot(mtcars, aes(x=hp, y=mpg, color = am)) +
-    geom_point(alpha=.5) + 
-    geom_smooth(method = "lm", size = 2) +
-    xlab("HP") + 
-    ylab("Miles per gallon") + 
-    ggtitle("Model 2: Automatic vs Manual by HP")
-g
-```
-
-```{r echo = FALSE}
-g = ggplot(mtcars, aes(x=hp, y=mpg, color = am, size = wt)) +
-    geom_point(alpha=.5) + 
-    geom_smooth(method = "lm", size = 2) +
-    geom_vline(xintercept = mean(automatic$hp), color = "cyan", alpha=.5) +
-    geom_hline(yintercept = mean(automatic$mpg), color = "cyan", alpha=.5) +
-    geom_vline(xintercept = mean(manual$hp), color = "salmon", alpha=.5) +
-    geom_hline(yintercept = mean(manual$mpg), color = "salmon", alpha=.5) +
-    xlab("HP") + 
-    ylab("Miles per gallon") + 
-    ggtitle("Model3: Automatic vs Manual by HP & Weight")
-g
-```
 
 **Grading criteria:**
 
