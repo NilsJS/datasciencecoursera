@@ -1,0 +1,22 @@
+---
+title: "Regression Models - Notes Week 3"
+author: "Nils Sandøy"
+date: "September 22, 2015"
+output: pdf_document
+---
+
+# Multivariable examples and tricks
+
+```{r}
+require(datasets)
+require(GGally)
+require(ggplot2)
+data("swiss")
+head(swiss)
+
+g <- ggpairs(swiss, lower = list(continuous = "smooth"), params = c(mmethos = "loess"))
+g
+
+## Calling lm with ~.  fits all variables at once
+summary(lm(Fertility ~ ., data = swiss))$coefficients
+```
