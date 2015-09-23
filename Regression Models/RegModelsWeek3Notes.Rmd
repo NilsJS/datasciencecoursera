@@ -18,5 +18,34 @@ g <- ggpairs(swiss, lower = list(continuous = "smooth"), params = c(mmethos = "l
 g
 
 ## Calling lm with ~.  fits all variables at once
-summary(lm(Fertility ~ ., data = swiss))$coefficients
+## Remember that this gives us n - 6 as degrees of freedom, as all variables are considered
+fit <- lm(Fertility ~ ., data = swiss)
+summary(fit)
+
+# Get just the coefficients, notice that Agriculture has a negative effect on the response Fertility
+summary(fit)$coefficients
+
+
+# Try a different model with just Agriculture and notice how this impacts the numbers. 
+# Agriculture should here have a positive impact on Fertility
+summary(lm(Fertility ~ Agriculture, data = swiss))$coefficients
+```
+
+---
+How can adjustment reverse the sign of an effect? Let's try a simulation.
+```{r, echo = TRUE}
+n <- 100; x2 <- 1 : n; x1 <- .01 * x2 + runif(n, -.1, .1); y = -x1 + x2 + rnorm(n, sd = .01)
+summary(lm(y ~ x1))$coef
+summary(lm(y ~ x1 + x2))$coef
+```
+
+---
+```{r, echo = FALSE, fig.height=5, fig.width=10, results = 'show'}
+par(mfrow = c(1, 2))
+plot(x1, y, pch=21,col="black",bg=topo.colors(n)[x2], frame = FALSE, cex = 1.5)
+title('Unadjusted, color is X2')
+abline(lm(y ~ x1), lwd = 2)
+plot(resid(lm(x1 ~ x2)), resid(lm(y ~ x2)), pch = 21, col = "black", bg = "lightblue", frame = FALSE, cex = 1.5)
+title('Adjusted')
+abline(0, coef(lm(y ~ x1 + x2))[2], lwd = 2)
 ```
