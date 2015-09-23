@@ -17,12 +17,6 @@ library(datasets)
 ```
 
 
-**Using the mtcars data set, answer the following two questions:**
-
-* "Is an automatic or manual transmission better for MPG"
-* "Quantify the MPG difference between automatic and manual transmissions"
-
-# Exploratory Analysis
 ```{r echo = FALSE}
 data(mtcars)
 
@@ -33,23 +27,29 @@ automatic <- subset(mtcars, am == 1)
 manual <- subset(mtcars, am == 0)
 ```
 
-```{r echo = FALSE}
-mtcars$am = as.character(mtcars$am)
-g = ggplot(mtcars, aes(x=hp, y=mpg, color = am, size = wt)) +
-    geom_point(alpha=.5) + 
-    xlab("HP") + 
-    ylab("Miles per gallon") + 
-    ggtitle("Automatic vs Manual")
-g
-mtcars$am = as.numeric(mtcars$am)
-```
+**Using the mtcars data set, answer the following two questions:**
 
+* "Is an automatic or manual transmission better for MPG"
+* "Quantify the MPG difference between automatic and manual transmissions"
+
+# Data eploration
 The mtcars data set consists of `r nrow(mtcars)` rows, `r nrow(automatic)` with automatic and  `r nrow(manual)` with manual transmission.  Some key variables are:
 
 * **mpg** = Miles(US)/gallon
 * **am** = Transmission (0 = automatic, 1 = manual)
 * **hp** = Gross horsepower 
 * **wt** = Weight (lb/1000) 
+
+```{r echo = FALSE, fig.height = 4}
+mtcars$am = as.character(mtcars$am)
+g = ggplot(mtcars, aes(x=hp, y=mpg, color = am, size = wt)) +
+    geom_point(alpha=.5) + 
+    xlab("HP") + 
+    ylab("Miles per gallon") + 
+    ggtitle("Exploratory plot: Automatic vs Manual")
+g
+mtcars$am = as.numeric(mtcars$am)
+```
 
 The above scatter plot has cars with automatic transmission in cyan and those with manual in salmon.  The x axis indicates engine power (hp) and the size of the dots indicate weight. Lighter automatic cars seem to cluster in the upper left quadrant, and are more fuel efficient than heavy manual cars which seem overly represented in the lower right quadrant.  
 
@@ -104,46 +104,44 @@ wt_ci <- coef[4,1] + c(1,-1)*qt(.975, df=fit3$df) * coef[4,2]
 
 # Appendix : plots
 
-```{r echo = FALSE}
-#windows.options(width=10, height=10)
-
+```{r echo=FALSE}
 mtcars$am = as.character(mtcars$am)
-g3 = ggplot(mtcars, aes(x=hp, y=mpg, color = am, size = wt)) +
-    geom_point(alpha=.5) + 
-    geom_smooth(method = "lm", size = 2) +
-    geom_vline(xintercept = mean(automatic$hp), color = "cyan", alpha=.5) +
-    geom_hline(yintercept = mean(automatic$mpg), color = "cyan", alpha=.5) +
-    geom_vline(xintercept = mean(manual$hp), color = "salmon", alpha=.5) +
-    geom_hline(yintercept = mean(manual$mpg), color = "salmon", alpha=.5) +
-    xlab("HP") + 
-    ylab("Miles per gallon") + 
-    ggtitle("Model3: Automatic vs Manual by HP & Weight")
-
-g3
-#grid.arrange(g1, g2, g3, nrow=3)
-
 mtcars$Residual <- resid(fit3) 
-g4 = ggplot(mtcars, aes(x=hp, y=Residual, size = wt, color = am)) +
-    geom_point(alpha=.5) + 
-    geom_hline(yintercept = 0, color = "black") 
+```
+
+```{r echo = FALSE, fig.height = 4, fig.width=automatic, fig.cap='Model3: mpg ~ am + hp + wt'}
+ggplot(mtcars, aes(x=hp, y=mpg, color = am, size = wt)) +
+  geom_point(alpha=.5) + 
+  geom_smooth(method = "lm", size = 2) +
+  geom_vline(xintercept = mean(automatic$hp), color = "cyan", alpha=.5) +
+  geom_hline(yintercept = mean(automatic$mpg), color = "cyan", alpha=.5) +
+  geom_vline(xintercept = mean(manual$hp), color = "salmon", alpha=.5) +
+  geom_hline(yintercept = mean(manual$mpg), color = "salmon", alpha=.5) +
+  xlab("HP") + 
+  ylab("Miles per gallon") + 
+  ggtitle("Model3: Automatic vs Manual by HP & Weight")
+```
+```{r echo = FALSE, fig.height = 4, fig.width=automatic, fig.cap='Residual plot for model 3'}
+ggplot(mtcars, aes(x=hp, y=Residual, size = wt, color = am)) +
+  geom_point(alpha=.5) + 
+  geom_hline(yintercept = 0, color = "black") 
 #    ggtitle("Residuals")
 #    xlab("HP") + 
 #    ylab("Miles per gallon") + 
-
-g4
 ```
 
 ```{r echo = FALSE}
-mtcars$am = as.character(mtcars$am)
+mtcars$am = as.numeric(mtcars$am)
 g1 = ggplot(mtcars, aes(x=am, y=mpg, color = am)) +
     geom_point(alpha=.5) + 
-    geom_hline(yintercept = mean(automatic$mpg), color = "cyan", alpha=.5) +
-    geom_hline(yintercept = mean(manual$mpg), color = "salmon", alpha=.5) +
+    stat_smooth(method= glm, family=binomial) +
+#    geom_hline(yintercept = mean(automatic$mpg), color = "cyan", alpha=.5) +
+#    geom_hline(yintercept = mean(manual$mpg), color = "salmon", alpha=.5) +
 #    geom_abline(yintercept = 10, slope = coef1[2,1], color = "black", size = 2) +
     xlab("Transmission type (0 = manual, 1 = automatic)") + 
     ylab("Miles per gallon") + 
     ggtitle("Model 1: Automatic vs Manual, with means")
-
+g1
 ```
 
 ```{r echo = FALSE}
