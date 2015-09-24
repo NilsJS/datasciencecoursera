@@ -36,9 +36,9 @@ manual <- subset(mtcars, am == 0)
 ```
 
 # Executive summary
-Using the mtcars data set I have modeled the impact of automatic vs a manual transmission on MPG.  The best model includes the weight of the car along with the transmission type and tracks improvements against a fuel consumption of gallons per 100 mils (GPM) rather than MPG.  This model identifies weight as the best predictor of fuel efficiency, but transmission type is **not** a valid predictor.   
+Using the mtcars data set I have modeled the impact of automatic vs a manual transmission on MPG.  The best model includes the weight of the car along with the transmission type and tracks improvements against a fuel consumption of gallons per 100 mils (GPM) rather than MPG.  This model identifies weight as the best predictor of fuel efficiency, but transmission type is **not** a good predictor.   
 
-* Is an automatic or manual transmission better for MPG?  **NO**
+* Is an automatic or manual transmission better for MPG?  **We are not able to tell from this data set**
 * Quantify the MPG difference between automatic and manual transmissions? 
 
 # Data exploration
@@ -71,7 +71,7 @@ The mtcars data set comprises fuel consumption (mpg) and 10 aspects of car perfo
 fit_gpm <- lm(gpm ~ ., mtcars2)
 coef_gpm <- summary(fit_gpm)$coef
 ```
-This model, which takes all available factors into consideration, predicts that switching to automatic transmission will increase fuel consumption by `r round(coef_gpm[2,1], 3)` gallons per 100 miles, provided all other factors are constant (basically swapping transmission type in the same car).  However the test for $H_0:\beta_{am} = 0$ vs $H_a:\beta_{am} \ne 0$ isn't significant since `r round(coef_gpm[2,4], 3)` is more than the typical limit of 0.05.  In fact none of the listed p-values are below 0.05.  
+This model, which takes all available factors into consideration, predicts that switching to automatic transmission will increase fuel consumption by `r round(coef_gpm[2,1], 3)` gallons per 100 miles, provided all other factors are constant (basically swapping transmission type in the same car).  In comparison, adding 1000lb of weight to the car will increase fuel consupmtion by `r round(coef_gpm[3,1], 3)` gallons per 100 miles.  However the test for $H_0:\beta_{am} = 0$ vs $H_a:\beta_{am} \ne 0$ isn't significant since `r round(coef_gpm[2,4], 3)` is more than the typical limit of 0.05.  In fact none of the listed p-values are below 0.05.  
 
 ```{r echo = FALSE}
 panderOptions('table.split.table', Inf) 
@@ -91,7 +91,9 @@ wt_ci <- coef_wt_gpm[1,1] + c(1,-1)*qt(.975, df=fit_wt_gpm$df) * coef_wt_gpm[1,2
 am_ci <- coef_wt_gpm[2,1] + c(1,-1)*qt(.975, df=fit_wt_gpm$df) * coef_wt_gpm[2,2]
 ```
 
-Weight is the single largest predictor of GPM.  This also makes intuitive sense.  The interpretation is that adding 1000 lb of weight increases fuel consumption by `r round(coef_wt_gpm[2,1], 3)` gallons per 100 miles, provided you keep the same transmission type.  But holding weight constant and switching to automatic should *reduce* consumption by `r abs(round(coef_wt_gpm[3,1], 3))` gallons per 100 miles.  Figure \ref{fig:mod_wt_gpm} plots two regression lines, one for each transmission type. It shows the weight/transmission relationship against both GPM & MPG.  The difference in GPM intersection (manual = `r round(coef_wt_gpm[1,1], 3)`, automatic = `r round(coef_wt_gpm[1,1] + coef_wt_gpm[3,1], 3)`) is the effect of going automatic.  These two sets barely overlap, as most heavy cars have manual transmission (right side of the plot) and lighter cars have automatic transmission.  This lack of overlap may be the reason that we also have a very high p-value for am, `r round(coef_wt_gpm[3,4],3)`, way above the limit of 0.05.  Looking at the residual plots in Figure \ref{fig:resid_wt_gpm} confirms this lack of overlap between the two types of transmission.   
+Weight is the single largest predictor of GPM.  This also makes intuitive sense.  The interpretation of this model, that uses weight and transmission type as predictors, is that adding 1000 lb of weight to a car with manual transmission increases fuel consumption by `r round(coef_wt_gpm[2,1], 3)` gallons per 100 miles (a decrease of XXX MPG), provided you keep the same transmission type. But holding weight constant and switching to automatic should *reduce* consumption by `r abs(round(coef_wt_gpm[3,1], 3))` gallons per 100 miles. `r round(coef_wt_gpm[1,1] + coef_wt_gpm[3,1], 3)` is then the intercept for an automatic car.  The slope is steeper for automatics though, so adding 1000lp of weight will then  negatively impact fuel consumption by `r round(coef_wt_gpm[2,1], 3)` + `r round(coef_wt_gpm[4,1], 3)` = `r round(coef_wt_gpm[2,1] + coef_wt_gpm[4,1], 3)`.  Thus the cost of automation when using weight as a predictor is `r round(coef_wt_gpm[2,1] + coef_wt_gpm[4,1], 3)` - `r round(coef_wt_gpm[2,1], 3)` = `r round(coef_wt_gpm[2,1] + coef_wt_gpm[4,1] - coef_wt_gpm[2,1], 3)` GPM.
+
+Figure \ref{fig:mod_wt_gpm} plots two regression lines, one for each transmission type. It shows the weight/transmission relationship against both GPM & MPG.  The difference in GPM intersection (manual = `r round(coef_wt_gpm[1,1], 3)`, automatic = `r round(coef_wt_gpm[1,1] + coef_wt_gpm[3,1], 3)`) is the effect of going automatic.  These two sets barely overlap, as most heavy cars have manual transmission (right side of the plot) and lighter cars have automatic transmission.  This lack of overlap may be the reason that we also have a very high p-value for am, `r round(coef_wt_gpm[3,4],3)`, way above the limit of 0.05.  Looking at the residual plots in Figure \ref{fig:resid_wt_gpm} confirms this lack of overlap between the two types of transmission.   
 
 ```{r echo = FALSE}
 panderOptions('table.split.table', Inf) 
@@ -100,6 +102,28 @@ pander(coef_wt_gpm, style="rmarkdown", caption="gpm ~ wt * factor(am)")
 
 The confidence interval for the slope of the *am* predictor/coefficient (`r round(am_ci[1], 4)` ;  `r round(am_ci[2], 4)`) is quite large as can be seen in Figure \ref{fig:mod_wt_gpm}.  The residual variance `r round(var(resid(fit_wt_gpm)), 4)` ($\sigma$ = `r round(summary(fit_wt_gpm)$sigma, 4)`), and the residual plots in Figure \ref{fig:resid_wt_gpm} shows a very bad fit for am as a predictor. 
 **NOT**: Still: with a p-value of `r round(coef_wt_gpm[3,4], 3)` we can say with 95% certainty that a car with the same weight and horse power will improve mpg by `r round(coef_wt_gpm[3,1], 3)` by having an automatic transmission. 
+
+
+#### The impact of weight: gpm ~ wt * am + hp/wt * am
+```{r echo = FALSE}
+mtcars3 <- mtcars2
+mtcars3$hp_wt <- mtcars3$hp/mtcars3$wt
+fit_wt_hp_gpm <- lm(gpm ~ wt * factor(am) + hp_wt * factor(am), mtcars3)
+coef_wt_hp_gpm <- summary(fit_wt_hp_gpm)$coef
+
+# Confidence interval for the intercept and the slope
+wt_ci <- coef_wt_hp_gpm[1,1] + c(1,-1)*qt(.975, df=fit_wt_hp_gpm$df) * coef_wt_hp_gpm[1,2]
+am_ci <- coef_wt_hp_gpm[2,1] + c(1,-1)*qt(.975, df=fit_wt_hp_gpm$df) * coef_wt_hp_gpm[2,2]
+```
+
+Weight is the single largest predictor of GPM.  This also makes intuitive sense.  The interpretation is that adding 1000 lb of weight increases fuel consumption by `r round(coef_wt_gpm[2,1], 3)` gallons per 100 miles, provided you keep the same transmission type.  But holding weight constant and switching to automatic should *reduce* consumption by `r abs(round(coef_wt_gpm[3,1], 3))` gallons per 100 miles.  Figure \ref{fig:mod_wt_gpm} plots two regression lines, one for each transmission type. It shows the weight/transmission relationship against both GPM & MPG.  The difference in GPM intersection (manual = `r round(coef_wt_gpm[1,1], 3)`, automatic = `r round(coef_wt_gpm[1,1] + coef_wt_gpm[3,1], 3)`) is the effect of going automatic.  These two sets barely overlap, as most heavy cars have manual transmission (right side of the plot) and lighter cars have automatic transmission.  This lack of overlap may be the reason that we also have a very high p-value for am, `r round(coef_wt_gpm[3,4],3)`, way above the limit of 0.05.  Looking at the residual plots in Figure \ref{fig:resid_wt_gpm} confirms this lack of overlap between the two types of transmission.   
+
+```{r echo = FALSE}
+panderOptions('table.split.table', Inf) 
+pander(coef_wt_hp_gpm, style="rmarkdown", caption="gpm ~ wt * factor(am) + hp/wt * factor(am)")
+```
+
+
 
 # Appendix : plots
 
