@@ -62,7 +62,7 @@ pander(summarise(group_by(mtcars, am),
        style="rmarkdown", caption="MPG by transmission type")
 ```
 
-The mtcars data set comprises fuel consumption (mpg) and 10 aspects of car performance and design.  Each of these aspects impact mpg in some way, and transmission type (am) is just one of them. Table 1 lists the cars with the highest and the lowest MPG in the set.  From these tables we can already see that some variables have a larger impact on MPG than others.  The scatter plots in Figure \ref{fig:explore} explore three of them: *hp*, *wt*, and *disp*. Each colored according transmission type.  All three  have a negative impact on mpg, and they do tend to go together; Large, heavy cars typically have more powerful engines and ultimately consume more fuel, and these cars are more likely to have a manual transmission.  Smaller, lighter and less powerful cars with automatic transmission seem to cluster in the upper left quadrant, and are more fuel efficient than heavy and/or powerful manual cars which seem overly represented in the lower right quadrant.  
+The mtcars data set comprises fuel consumption (mpg) and 10 aspects of car performance and design.  Table 1 lists the cars with the highest and the lowest MPG in the set.  Each variable impacts mpg in some way, and transmission type (am) is just one of them.  The scatter plots in Figure \ref{fig:explore} explore three likely predictors of low MPG: *hp*, *wt*, and *disp*. Each colored according transmission type.  All three  have a negative impact on MPG, and they do tend to go together; Large, heavy cars typically have more powerful engines and ultimately consume more fuel, and these cars are more likely to have a manual transmission.  Smaller, lighter and less powerful cars with automatic transmission seem to cluster in the upper left corner, and are more fuel efficient than heavy and/or powerful manual cars which seem overly represented in the lower right corner  
 
 # Models
 
@@ -72,27 +72,28 @@ fit_mpg <- lm(mpg ~ ., mtcars)
 coef_mpg <- summary(fit_mpg)$coef
 ```
 
-Taking all available factors into consideration, predicts that switching to automatic transmission will increase fuel consumption by `r round(coef_mpg[2,1], 3)` gallons per 100 miles, provided all other factors are constant (basically swapping transmission type in the same car).  In comparison, adding 1000lb of weight to the car will increase fuel consupmtion by `r round(coef_mpg[3,1], 3)` gallons per 100 miles.  However the test for $H_0:\beta_{am} = 0$ vs $H_a:\beta_{am} \ne 0$ isn't significant since `r round(coef_mpg[2,4], 3)` is more than the typical limit of 0.05.  In fact none of the listed p-values are below 0.05.  
+The "holistic" model, **mpg ~ .**, takes all variables into consideration.  Table 3 shows the coefficients for this model.  It predicts that switching to automatic transmission will *improve* MPG by `r round(coef_mpg[2,1], 3)`, provided all other factors are constant (basically swapping transmission type in the same car).  In comparison, adding 1000lb of weight to the car will *decrease* MPG by `r abs(round(coef_mpg[3,1], 3))`.  Again providing all other variables stay constant.  However including this many factors have inflated the standard error.  Thus the test for $H_0:\beta_{am} = 0$ vs $H_a:\beta_{am} \ne 0$ isn't significant since `r round(coef_mpg[2,4], 3)` is more than the typical limit of 0.05.  In fact none of the listed p-values are below 0.05.  We have to focus our model on just the most likely contributor to fuel efficiency.
 
 ```{r echo = FALSE}
 panderOptions('table.split.table', Inf) 
 pander(coef_mpg, style="rmarkdown", caption="mpg ~ .")
 ```
 
-#### Model selection. 
+## Model selection. 
 
 We know weight is important, but what else?  Try creating a model for each of the variables along with am:
+
 ```{r echo = TRUE}
-m1 <- lm(mpg ~ am, data=mtcars)
-m2 <- lm(mpg ~ am * wt, data=mtcars)
-m3 <- lm(mpg ~ am * (wt + hp), data=mtcars)
-m4 <- lm(mpg ~ am * (wt + hp + disp), data=mtcars)
-m5 <- lm(mpg ~ am * (wt + hp + disp + gear), data=mtcars)
-m6 <- lm(mpg ~ am * (wt + hp + disp + gear + carb), data=mtcars)
-m7 <- lm(mpg ~ am * (wt + hp + disp + gear + carb + cyl), data=mtcars)
-m8 <- lm(mpg ~ am * (wt + hp + disp + gear + carb + cyl + drat), data=mtcars)
-m9 <- lm(mpg ~ am * (wt + hp + disp + gear + carb + cyl + drat + qsec), data=mtcars)
-m10 <- lm(mpg ~ am * (wt + hp + disp + gear + carb + cyl + drat + qsec + vs), data=mtcars)
+m1 <- lm(mpg ~ factor(am), data=mtcars)
+m2 <- lm(mpg ~ factor(am) * wt, data=mtcars)
+m3 <- lm(mpg ~ factor(am) * (wt + hp), data=mtcars)
+m4 <- lm(mpg ~ factor(am) * (wt + hp + disp), data=mtcars)
+m5 <- lm(mpg ~ factor(am) * (wt + hp + disp + gear), data=mtcars)
+m6 <- lm(mpg ~ factor(am) * (wt + hp + disp + gear + carb), data=mtcars)
+m7 <- lm(mpg ~ factor(am) * (wt + hp + disp + gear + carb + cyl), data=mtcars)
+m8 <- lm(mpg ~ factor(am) * (wt + hp + disp + gear + carb + cyl + drat), data=mtcars)
+m9 <- lm(mpg ~ factor(am) * (wt + hp + disp + gear + carb + cyl + drat + qsec), data=mtcars)
+m10 <- lm(mpg ~ factor(am) * (wt + hp + disp + gear + carb + cyl + drat + qsec + vs), data=mtcars)
 ```
 
 ```{r echo = FALSE}
@@ -104,7 +105,7 @@ pander(a, style="rmarkdown", caption="anova(m1, m2, m3, m4, m5, m6, m7, m8, m9, 
 It seems from *anova* that models 2, 3 and 9, were significant, wt, hp & qsec.  Try again with just those:
 
 ```{r echo = TRUE}
-m11 <- lm(mpg ~ am * (wt + hp + qsec), data=mtcars)
+m11 <- lm(mpg ~ factor(am) * (wt + hp + qsec), data=mtcars)
 ```
 
 ```{r echo = FALSE}
@@ -125,7 +126,7 @@ panderOptions('table.split.table', Inf)
 pander(cmp, style="rmarkdown", caption="Impact on the am predictor for m1, m2, m3 & m11")
 ```
 
-Including qsec greatly increases the standard error and we no longer get a significant result for am.  **Let's go with m3 as the model.**
+Including qsec greatly increases the standard error and we no longer get a significant result for am.  **Let's go with m3 as the model.**  In terms of *variance inflation* transmission has a large overall impact, and it also impacts weight and engine power. 
 
 ```{r echo = FALSE}
 panderOptions('table.split.table', Inf) 
@@ -133,21 +134,23 @@ pander(as.table(vif(m3)), style="rmarkdown", caption="Variance Inflation Factors
 ```
 
 
-#### M3: mpg ~ am * (wt + hp)
+## M3: mpg ~ am * (wt + hp)
 ```{r echo = FALSE}
 coef_m3 <- summary(m3)$coef
 
 # Confidence interval for the intercept and the slope
 wt_ci <- coef_m3[1,1] + c(1,-1)*qt(.975, df=m3$df) * coef_m3[1,2]
 am_ci <- coef_m3[2,1] + c(1,-1)*qt(.975, df=m3$df) * coef_m3[2,2]
-```
 
-```{r echo = FALSE}
 panderOptions('table.split.table', Inf) 
 pander(coef_m3, style="rmarkdown", caption="mpg ~ am * (wt + hp)")
 ```
 
-The interpretation of this model, that uses weight and horse power along with transmission type as predictors, is that adding 1000 lb of weight to a car with manual transmission decreases MPG by `r round(coef_m3[2,1], 3)`, provided you keep the same hp.  But holding weight and constant and switching to automatic should *reduce* consumption by `r abs(round(coef_m3[3,1], 3))` gallons per 100 miles. `r round(coef_m3[1,1] + coef_m3[3,1], 3)` is then the intercept for an automatic car.  The slope is steeper for automatics though, so adding 1000lp of weight will then  negatively impact fuel consumption by `r round(coef_m3[2,1], 3)` + `r round(coef_m3[4,1], 3)` = `r round(coef_m3[2,1] + coef_m3[4,1], 3)`.  Thus the cost of automation when using weight as a predictor is `r round(coef_m3[2,1] + coef_m3[4,1], 3)` - `r round(coef_m3[2,1], 3)` = `r round(coef_m3[2,1] + coef_m3[4,1] - coef_m3[2,1], 3)` GPM.
+Figure {ref:fig3} makes a plot of this model, which uses weight and horse power along with transmission type as predictors.  For weight in particular there is a clear curvature. This is also apparent in the exploratory plots. But within each transmission type it seems pretty linear.  For weight it is the change of slope for the two lines that has the most apparentimpact of going with an automatic transmission.  There are four lines in the 
+
+The interpretation of this model is that adding 1000 lb of weight to a car with *manual transmission* **decreases** MPG by `r round(abs(coef_m3[3,1]), 3)`, provided you keep the same hp.  Adding 1 hp to a car with *manual transmission*, while keeping weight constant, **decreases** MPG by `r round(abs(coef_m3[4,1]), 3)`.  
+
+But holding weight and constant and switching to automatic should *reduce* consumption by `r abs(round(coef_m3[3,1], 3))` gallons per 100 miles. `r round(coef_m3[1,1] + coef_m3[3,1], 3)` is then the intercept for an automatic car.  The slope is steeper for automatics though, so adding 1000lp of weight will then  negatively impact fuel consumption by `r round(coef_m3[2,1], 3)` + `r round(coef_m3[4,1], 3)` = `r round(coef_m3[2,1] + coef_m3[4,1], 3)`.  Thus the cost of automation when using weight as a predictor is `r round(coef_m3[2,1] + coef_m3[4,1], 3)` - `r round(coef_m3[2,1], 3)` = `r round(coef_m3[2,1] + coef_m3[4,1] - coef_m3[2,1], 3)` GPM.
 
 Figure \ref{fig:mod_m3} plots two regression lines, one for each transmission type. It shows the weight/transmission relationship against both GPM & MPG.  The difference in GPM intersection (manual = `r round(coef_m3[1,1], 3)`, automatic = `r round(coef_m3[1,1] + coef_m3[3,1], 3)`) is the effect of going automatic.  These two sets barely overlap, as most heavy cars have manual transmission (right side of the plot) and lighter cars have automatic transmission.  This lack of overlap may be the reason that we also have a very high p-value for am, `r round(coef_m3[3,4],3)`, way above the limit of 0.05.  Looking at the residual plots in Figure \ref{fig:resid_m3} confirms this lack of overlap between the two types of transmission.   
 
@@ -173,15 +176,56 @@ g3 = ggplot(mtcars, aes(x=disp, y=mpg, color = factor(am))) +
 grid.arrange(g1, g2, g3, ncol=3)
 ```
 
-```{r mod_m3, echo = FALSE, fig.height = 5, fig.width=automatic, fig.cap="\\label{fig:mod_m3} mpg ~ am * (wt + hp)"}
-ggplot(mtcars, aes(x=wt, y=mpg, color=factor(am), size = hp)) +
-    geom_point(alpha=.5) +
-    geom_smooth(method = "lm", se = TRUE) +
-    geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
-    geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
-    theme(legend.position="bottom")
+
+```{r mod_m3_diagnostic, echo = FALSE, fig.height = 6, fig.width=automatic, fig.cap="\\label{fig:mod_m3_diagnostic} Diagnostics for mpg ~ am * (wt + hp)"}
+# diagnostic plots 
+ layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page 
+ plot(m3)
 ```
 
+```{r mod_m3, echo = FALSE, fig.height = 6, fig.width=automatic, fig.cap="\\label{fig:mod_m3} mpg ~ am * (wt + hp)"}
+g1 <- ggplot(mtcars, aes(x=wt, y=mpg, color=factor(am), size = hp)) +
+        geom_point(alpha=.5) +
+        geom_smooth(method = "lm", se = TRUE) +
+        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
+        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
+        theme(legend.position="right")
+g2 <- ggplot(mtcars, aes(x=hp, y=mpg, color=factor(am), size = wt)) +
+        geom_point(alpha=.5) +
+        geom_smooth(method = "lm", se = TRUE) +
+        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
+        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
+        theme(legend.position="right")
+grid.arrange(g1, g2, nrow=2)
+```
+
+```{r mod_m3_2, echo = FALSE, fig.height = 4, fig.width=automatic, fig.cap="\\label{fig:mod_m3_2} mpg ~ am * (wt + hp)"}
+# wt for manual & automatic
+wtgrid <- with(mtcars, expand.grid(
+     am = levels(factor(am)),
+     wt = seq(min(wt), max(wt), length = 20),
+     hp = seq(min(hp), max(hp), length = 20)
+))
+wtgrid$mpg <- stats::predict(m3, newdata=wtgrid)
+
+# hp for manual & automatic
+hpgrid <- with(mtcars, expand.grid(
+     am = levels(factor(am)),
+     hp = seq(min(hp), max(hp), length = 20),
+     wt = seq(min(wt), max(wt), length = 20)
+))
+hpgrid$mpg <- stats::predict(m3, newdata=hpgrid)
+
+g1 <- ggplot(mtcars, aes(x=wt, y=mpg, color=factor(am), size = hp)) +
+        geom_point(alpha=.5) +
+#        geom_smooth(method = "lm", se = TRUE) +
+#        geom_line(data=wtgrid) +
+#        geom_line(data=hpgrid) +
+        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
+        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
+        theme(legend.position="right")
+#g1
+```
 
 ```{r resid_m3, echo = FALSE, fig.height = 4, fig.width=automatic, fig.cap="\\label{fig:resid_m3}Residual plots"}
 mtcars$Residual <- resid(m3) 
@@ -190,3 +234,5 @@ ggplot(mtcars, aes(x=wt, y=Residual, color=factor(am), size = hp)) +
       geom_hline(yintercept = 0, color = "black") +
       theme(legend.position="right")
 ```
+
+
