@@ -33,14 +33,15 @@ mtcars2$gpm <- as.gpm(mtcars$mpg)
 
 automatic <- subset(mtcars, am == 1)
 manual <- subset(mtcars, am == 0)
-
 ```
 
 # Executive summary
-Using the mtcars data set I have modeled the impact of automatic vs a manual transmission on MPG.  The best model includes the weight of the car along with the transmission type and tracks improvements against a fuel consumption of gallons per 100 mils (GPM) rather than MPG.  This model identifies weight as the best predictor of fuel efficiency, but transmission type is **not** a good predictor.   
+Using the mtcars data set I have modeled the impact of automatic vs a manual transmission on MPG.  The best model has **Weight** (wt) and **Engine Power** (hp) along with **Transmission Type** (am).  However there is much 
 
-* Is an automatic or manual transmission better for MPG?  **We are not able to tell from this data set**
+* Is an automatic or manual transmission better for MPG?  
+    We are not able to tell from this data set; p-valkues too high for us to reject $H_0$
 * Quantify the MPG difference between automatic and manual transmissions? 
+    -0.743 MPG with a confidence interval of (2.4965 ; -3.9828)
 
 # Data exploration
 
@@ -133,8 +134,8 @@ panderOptions('table.split.table', Inf)
 pander(as.table(vif(m3)), style="rmarkdown", caption="Variance Inflation Factors: vif(m3)")
 ```
 
+## Final model: mpg ~ am * (wt + hp)
 
-## M3: mpg ~ am * (wt + hp)
 Our predictors will be weight (wt) and engine power (hp), along with transmission type (am).  We will center wt and hp to facilitate the interpretation of the coefficients.
 
 ```{r echo = TRUE}
@@ -148,26 +149,20 @@ m <- lm(mpg ~ factor(am) * (mwt + mhp), data=mtcars)
 coef_m <- summary(m)$coef
 
 # Confidence interval for the intercept and the slope
-am_ci <- coef_m[1,1] + c(1,-1)*qt(.975, df=m$df) * coef_m[1,2]
-wt_ci <- coef_m[2,1] + c(1,-1)*qt(.975, df=m$df) * coef_m[2,2]
-hp_ci <- coef_m[3,1] + c(1,-1)*qt(.975, df=m$df) * coef_m[3,2]
+am_ci <- coef_m[2,1] + c(1,-1)*qt(.975, df=m$df) * coef_m[2,2]
+wt_ci <- coef_m[3,1] + c(1,-1)*qt(.975, df=m$df) * coef_m[3,2]
+hp_ci <- coef_m[4,1] + c(1,-1)*qt(.975, df=m$df) * coef_m[4,2]
 
 
 panderOptions('table.split.table', Inf) 
 pander(coef_m, style="rmarkdown", caption="mpg ~ factor(am) * (mwt + mhp))")
 ```
 
-Figure {ref:fig3} makes a plot of this model, which uses weight and horse power along with transmission type as predictors.  For weight in particular there is a clear curvature. This is also apparent in the exploratory plots. But within each transmission type it seems pretty linear.  For weight it is the change of slope for the two lines that has the most apparentimpact of going with an automatic transmission.  There are four lines in the 
+Figure \ref{fig:mod_m} makes a plot of this model, which uses weight and horse power along with transmission type as predictors.  For weight in particular there is a clear curvature. This is also apparent in the exploratory plots.  The p-value for transmission type (am), `r coef_m[2,4]`, is far above below the 0.05 limit. Therefore the test for $H_0:\beta_{am} = 0$ vs $H_a:\beta_{am} \ne 0$ isn't significant, and **we cannot conclude that transmission type is a good predictor**. This is possibly due to the lack of overlap between the cars in the two transmission type sets.  With both plots you can also see some outlier values on the right hand side of the plot.  In the residuals plot in Figure \ref{fig:resid_m} you will also see that there are outliers among the lighter cars such as the Fiat 128, and Toyota Corolla.  A linear model is probably not the best fit here.
 
-The interpretation of this model is that adding 1000 lb of weight to a car with *manual transmission* **decreases** MPG by `r round(abs(coef_m[3,1]), 3)`, provided you keep the same hp.  Adding 1 hp to a car with *manual transmission*, while keeping weight constant, **decreases** MPG by `r round(abs(coef_m[4,1]), 3)`.  
+A car with manual transmission and medium weight(`r round(mean(manual$wt)*1000, 1)` lb), and medium engine power(`r round(mean(manual$hp), 1)` hp) runs `r round(coef_m[1,1],3)` MPG. Switching to automatic transmission (with the same wt and hp) will negatively impact MPG by `r round(coef_m[2,1], 3)` to `r round(coef_m[1,1] + coef_m[2,1],3)` MPG.  Following the wt graph in Figure \ref{fig:mod_m} we see that the slope for automatic transmission is much steeper.  I.e adding 1000lb of weight to a car with manual transmission will cost you less MPG than with an automatic car. The wt slope is the impact of adding 1000lb of weight to a car, while keeping hp and transmission type constant.  For a car with manual transmission this is `r coef_m[3,1]`, while the wt slope for an automatic car is `r coef_m[3,1]` + `r coef_m[5,1]` = `r coef_m[3,1] + coef_m[3,1]`.
 
-But holding weight and constant and switching to automatic should *reduce* consumption by `r abs(round(coef_m[3,1], 3))` gallons per 100 miles. `r round(coef_m[1,1] + coef_m[3,1], 3)` is then the intercept for an automatic car.  The slope is steeper for automatics though, so adding 1000lp of weight will then  negatively impact fuel consumption by `r round(coef_m[2,1], 3)` + `r round(coef_m[4,1], 3)` = `r round(coef_m[2,1] + coef_m[4,1], 3)`.  Thus the cost of automation when using weight as a predictor is `r round(coef_m[2,1] + coef_m[4,1], 3)` - `r round(coef_m[2,1], 3)` = `r round(coef_m[2,1] + coef_m[4,1] - coef_m[2,1], 3)` GPM.
-
-Figure \ref{fig:mod_m} plots two regression lines, one for each transmission type. It shows the weight/transmission relationship against both GPM & MPG.  The difference in GPM intersection (manual = `r round(coef_m[1,1], 3)`, automatic = `r round(coef_m[1,1] + coef_m[3,1], 3)`) is the effect of going automatic.  These two sets barely overlap, as most heavy cars have manual transmission (right side of the plot) and lighter cars have automatic transmission.  This lack of overlap may be the reason that we also have a very high p-value for am, `r round(coef_m[3,4],3)`, way above the limit of 0.05.  Looking at the residual plots in Figure \ref{fig:resid_m} confirms this lack of overlap between the two types of transmission.   
-
-The confidence interval for the slope of the *am* predictor/coefficient (`r round(am_ci[1], 4)` ;  `r round(am_ci[2], 4)`) is quite large as can be seen in Figure \ref{fig:mod_m}.  The residual variance `r round(var(resid(m)), 4)` ($\sigma$ = `r round(summary(m)$sigma, 4)`), and the residual plots in Figure \ref{fig:resid_m} shows a very bad fit for am as a predictor. 
-**NOT**: Still: with a p-value of `r round(coef_m[3,4], 3)` we can say with 95% certainty that a car with the same weight and horse power will improve mpg by `r round(coef_m[3,1], 3)` by having an automatic transmission. 
-
+The confidence interval for the slope of the *am* predictor/coefficient (`r round(am_ci[1], 4)` ; `r round(am_ci[2], 4)`) is quite wide and it does include 0, so it is quite possible that there is NO effect.  The residual variance `r round(var(resid(m)), 4)` ($\sigma$ = `r round(summary(m)$sigma, 4)`), and the residual plots in Figure \ref{fig:resid_m} shows a couple of strong outliers both in terms of light underpowered cars and some very heavy or overpowered cars.  All this results in a bad fit for am as a predictor in this model. 
 
 # Appendix : plots
 
@@ -188,78 +183,44 @@ grid.arrange(g1, g2, g3, ncol=3)
 ```
 
 
+```{r mod_m, echo = FALSE, fig.height = 6, fig.width=automatic, fig.cap="\\label{fig:mod_m} mpg ~ am * (mwt + mhp)"}
+
+#automatic <- subset(mtcars, am == 1)
+#manual <- subset(mtcars, am == 0)
+
+g1 <- ggplot(mtcars, aes(x=mwt, y=mpg, color=factor(am), size = mhp)) +
+        geom_point(alpha=.5) +
+        geom_smooth(method = "lm", se = TRUE) +
+#        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
+#        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
+        theme(legend.position="right")
+g2 <- ggplot(mtcars, aes(x=mhp, y=mpg, color=factor(am), size = mwt)) +
+        geom_point(alpha=.5) +
+        geom_smooth(method = "lm", se = TRUE) +
+#        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
+#        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
+        theme(legend.position="right")
+grid.arrange(g1, g2, nrow=2)
+```
+
+
 ```{r mod_m3_diagnostic, echo = FALSE, fig.height = 6, fig.width=automatic, fig.cap="\\label{fig:mod_m3_diagnostic} Diagnostics for mpg ~ am * (wt + hp)"}
 # diagnostic plots 
  layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page 
  plot(m3)
 ```
 
-```{r mod_m, echo = FALSE, fig.height = 6, fig.width=automatic, fig.cap="\\label{fig:mod_m} mpg ~ am * ((wt - mean(wt)) + (hp - mean(hp))"}
-g1 <- ggplot(mtcars, aes(x=(wt - mean(wt)), y=mpg, color=factor(am), size = hp)) +
-        geom_point(alpha=.5) +
-        geom_smooth(method = "lm", se = TRUE) +
-        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
-        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
-        theme(legend.position="right")
-g2 <- ggplot(mtcars, aes(x=(hp - mean(hp)), y=mpg, color=factor(am), size = wt)) +
-        geom_point(alpha=.5) +
-        geom_smooth(method = "lm", se = TRUE) +
-        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
-        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
-        theme(legend.position="right")
-grid.arrange(g1, g2, nrow=2)
-```
-
-```{r mod_m3, echo = FALSE, fig.height = 6, fig.width=automatic, fig.cap="\\label{fig:mod_m3} mpg ~ am * (wt + hp)"}
-g1 <- ggplot(mtcars, aes(x=wt, y=mpg, color=factor(am), size = hp)) +
-        geom_point(alpha=.5) +
-        geom_smooth(method = "lm", se = TRUE) +
-        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
-        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
-        theme(legend.position="right")
-g2 <- ggplot(mtcars, aes(x=hp, y=mpg, color=factor(am), size = wt)) +
-        geom_point(alpha=.5) +
-        geom_smooth(method = "lm", se = TRUE) +
-        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
-        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
-        theme(legend.position="right")
-grid.arrange(g1, g2, nrow=2)
-```
-
-```{r mod_m3_2, echo = FALSE, fig.height = 4, fig.width=automatic, fig.cap="\\label{fig:mod_m3_2} mpg ~ am * (wt + hp)"}
-# wt for manual & automatic
-wtgrid <- with(mtcars, expand.grid(
-     am = levels(factor(am)),
-     wt = seq(min(wt), max(wt), length = 20),
-     hp = seq(min(hp), max(hp), length = 20)
-))
-wtgrid$mpg <- stats::predict(m3, newdata=wtgrid)
-
-# hp for manual & automatic
-hpgrid <- with(mtcars, expand.grid(
-     am = levels(factor(am)),
-     hp = seq(min(hp), max(hp), length = 20),
-     wt = seq(min(wt), max(wt), length = 20)
-))
-hpgrid$mpg <- stats::predict(m3, newdata=hpgrid)
-
-g1 <- ggplot(mtcars, aes(x=wt, y=mpg, color=factor(am), size = hp)) +
-        geom_point(alpha=.5) +
-#        geom_smooth(method = "lm", se = TRUE) +
-#        geom_line(data=wtgrid) +
-#        geom_line(data=hpgrid) +
-        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
-        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
-        theme(legend.position="right")
-#g1
-```
-
-```{r resid_m3, echo = FALSE, fig.height = 4, fig.width=automatic, fig.cap="\\label{fig:resid_m3}Residual plots"}
-mtcars$Residual <- resid(m3) 
-ggplot(mtcars, aes(x=wt, y=Residual, color=factor(am), size = hp)) +
+```{r resid_m, echo = FALSE, fig.height = 4, fig.width=automatic, fig.cap="\\label{fig:resid_m}Residual plots"}
+mtcars$Residual <- resid(m) 
+g1 <- ggplot(mtcars, aes(x=wt, y=Residual, color=factor(am), size = hp)) +
       geom_point(alpha=.5) + 
       geom_hline(yintercept = 0, color = "black") +
       theme(legend.position="right")
+g2 <- ggplot(mtcars, aes(x=hp, y=Residual, color=factor(am), size = wt)) +
+      geom_point(alpha=.5) + 
+      geom_hline(yintercept = 0, color = "black") +
+      theme(legend.position="right")
+grid.arrange(g1, g2, nrow=2)
 ```
 
 
