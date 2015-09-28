@@ -1,0 +1,182 @@
+---
+title: "Week 3 - Quizz Notes"
+author: "Nils"
+date: "27. september 2015"
+output:
+  html_document: default
+  pdf_document:
+    fig_caption: yes
+includes:
+  in_header: mystyles.sty
+---
+
+
+```{r, results="hide", echo=FALSE}
+# Load libraries
+library(dplyr, quietly=TRUE, warn.conflicts = FALSE)
+suppressWarnings(library(scales, quietly=TRUE))
+suppressWarnings(library(pander, quietly=TRUE))
+library(ggplot2)
+suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
+
+library(datasets)
+library(car)
+require(lmtest)
+```
+
+# Question 1
+
+Consider the mtcars data set. Fit a model with mpg as the outcome that includes number of cylinders as a factor variable and weight as confounder. Give the adjusted estimate for the expected change in mpg comparing 8 cylinders to 4.
+
+
+```{r}
+data("mtcars")
+
+fit <- lm(mpg ~ factor(cyl) + wt, data = mtcars)
+coef <- summary(fit)$coef
+
+panderOptions('table.split.table', Inf) 
+pander(coef, style="rmarkdown", caption="mpg ~ factor(cyl) + wt")
+
+```
+
+
+# Question 2
+
+Consider the mtcars data set. Fit a model with mpg as the outcome that includes number of cylinders as a factor variable and weight as a possible confounding variable. Compare the effect of 8 versus 4 cylinders on mpg for the adjusted and unadjusted by weight models. Here, adjusted means including the weight variable as a term in the regression model and unadjusted means the model without weight included. What can be said about the effect comparing 8 and 4 cylinders after looking at models with and without weight included?.
+
+```{r}
+fit2 <- lm(mpg ~ factor(cyl), data = mtcars)
+coef2 <- summary(fit2)$coef
+
+panderOptions('table.split.table', Inf) 
+pander(coef2, style="rmarkdown", caption="mpg")
+pander(coef, style="rmarkdown", caption="mpg ~ factor(cyl) + wt")
+```
+
+Cylinder has less of an impact when considering weight
+
+```{r mod_m, echo = FALSE, fig.height = 5, fig.cap="\\label{fig:mod_m} mpg ~ cyl + wt"}
+
+g1 <- ggplot(mtcars, aes(x=factor(cyl), y=mpg, size=wt)) +
+        geom_point(alpha=.5) +
+        geom_smooth(method = "lm", se = TRUE) +
+#        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
+#        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
+        theme(legend.position="bottom")
+g2 <- ggplot(mtcars, aes(x=factor(cyl), y=mpg)) +
+        geom_point(alpha=.5) +
+        geom_smooth(method = "lm", se = TRUE) +
+#        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
+#        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
+        theme(legend.position="bottom")
+g3 <- ggplot(mtcars, aes(x=wt, y=mpg, size=wt)) +
+        geom_point(alpha=.5) +
+        geom_smooth(method = "lm", se = TRUE) +
+#        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
+#        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
+        theme(legend.position="bottom")
+g4 <- ggplot(mtcars, aes(x=wt, color=factor(cyl), y=mpg)) +
+        geom_point(alpha=.5) +
+        geom_smooth(method = "lm", se = TRUE) +
+#        geom_hline(yintercept = mean(automatic$mpg), color = "cyan") +
+#        geom_hline(yintercept = mean(manual$mpg), color = "salmon") +
+        theme(legend.position="bottom")
+grid.arrange(g1, g2, g3, g4, ncol=2, nrow=2)
+```
+
+
+# Question 3
+Consider the  mtcars  data set. 
+
+Fit a model with mpg as the outcome that considers number of cylinders as a factor variable and weight as confounder. 
+Fit a second model with mpg as the outcome model that considers the interaction between number of cylinders (as a factor variable) and weight. 
+
+Give the P-value for the likelihood ratio test comparing the two models and suggest a model using 0.05 as a type I error rate significance benchmark. 
+
+```{r}
+fit1 <- lm(mpg ~ factor(cyl) + wt, data = mtcars)
+fit2 <- lm(mpg ~ factor(cyl) * wt, data = mtcars)
+
+panderOptions('table.split.table', Inf) 
+pander(summary(fit1)$coef, style="rmarkdown", caption="mpg ~ factor(cyl) + wt")
+pander(summary(fit2)$coef, style="rmarkdown", caption="mpg ~ factor(cyl) * wt")
+
+pander(lrtest(fit1, fit2), style="rmarkdown")
+```
+
+
+# Question 4
+
+Consider the mtcars data set. Fit a model with mpg as the outcome that includes number of cylinders as a factor variable and weight inlcuded in the model as
+
+```{r}
+fit <- lm(mpg ~ I(wt * 0.5) + factor(cyl), data = mtcars)
+pander(summary(fit)$coef, style="rmarkdown")
+```
+
+How is the wt coefficient interpretted?
+
+* The estimated expected change in MPG per half ton increase in weight for the average number of cylinders. 
+* The estimated expected change in MPG per one ton increase in weight. 
+* The estimated expected change in MPG per one ton increase in weight for a specific number of cylinders (4, 6, 8). 
+* The estimated expected change in MPG per half ton increase in weight. 
+* The estimated expected change in MPG per half ton increase in weight for for a specific number of cylinders (4, 6, 8).
+
+
+
+# Question 5
+Consider the following data set
+```{r}
+x <- c(0.586, 0.166, -0.042, -0.614, 11.72)
+y <- c(0.549, -0.026, -0.127, -0.751, 1.344)
+
+```
+
+Give the hat diagonal for the most influential point
+
+```{r}
+fit <- lm(y ~ x)
+hv <- hatvalues(fit)
+pander(hv, style="rmarkdown")
+
+max(hv)
+
+```
+
+* 0.2287 
+* 0.2025 
+* 0.9946 
+* 0.2804
+
+
+# Question 6
+
+Consider the following data set
+```{r}
+x <- c(0.586, 0.166, -0.042, -0.614, 11.72)
+y <- c(0.549, -0.026, -0.127, -0.751, 1.344)
+```
+
+Give the slope dfbeta for the point with the highest hat value.
+
+```{r}
+fit <- lm(y ~ x)
+pander(hatvalues(fit), style="rmarkdown")
+pander(dfbetas(fit), style="rmarkdown")
+```
+
+* 0.673 
+* -134 
+* -.00134  
+* -0.378 
+
+# Question 7
+
+Consider a regression relationship between Y and X with and without adjustment for a third variable Z. Which of the following is true about comparing the regression coefficient between Y and X with and without adjustment for Z.
+
+
+* The coefficient can't change sign after adjustment, except for slight numerical pathological cases.  
+* For the the coefficient to change sign, there must be a significant interaction term. 
+* Adjusting for another variable can only attenuate the coefficient toward zero. It can't materially change sign. 
+* It is possible for the coefficient to reverse sign after adjustment. For example, it can be strongly significant and positive before adjustment and strongly significant and negative after adjustment.
