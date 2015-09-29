@@ -1,0 +1,74 @@
+---
+title: "RegModels Exercises Week 4"
+author: "Nils Sandøy"
+date: "September 29, 2015"
+output: pdf_document
+---
+
+
+```{r, results="hide", echo=FALSE}
+# Load libraries
+library(dplyr, quietly=TRUE, warn.conflicts = FALSE)
+suppressWarnings(library(scales, quietly=TRUE))
+suppressWarnings(library(pander, quietly=TRUE))
+library(ggplot2)
+suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
+
+library(datasets)
+library(car)
+```
+
+
+1. Load the dataset Seatbelts as part of the datasets package via data(Seatbelts). Use as.data.frame to convert the object to a dataframe. Create a new outcome variable for whether or not greater than 119 drivers were killed that month. Fit a logistic regression GLM with this variable as the outcome and kms, PetrolPrice and law as predictors. Interpret your parameters. [Watch a video solution](https://www.youtube.com/watch?v=CXWZqzKdkp4&list=PLpl-gQkQivXji7JK1OP1qS7zalwUBPrX0&index=52).
+
+
+```{r}
+data("Seatbelts")
+# Create a new outcome variable for whether or not greater than 119 drivers were killed that month.
+sb <- mutate(as.data.frame(Seatbelts),
+             dkb <- 1 * (DriversKilled > 119),  # Multiply by 1 forces this to be numeric, rather than boolean
+             pp = (PetrolPrice - mean(PetrolPrice)) / sd(PetrolPrice),
+             mm = kms / 1000,
+             mmc = mm - mean(mm))
+
+# Fit a logistic regression GLM with this variable as the outcome and kms, PetrolPrice and law as predictors
+glm <- glm(dkb ~ pp + mmc + law  , data = sb,family="binomial")
+coefs <- summary(glm)$coef
+panderOptions('table.split.table', Inf) 
+pander(coefs, style="rmarkdown", caption="dkb ~ kms + PetrolPrice + law")
+```
+
+#### Interpret your parameters.
+Use exponentials to interpret the numbers.
+```{r}
+# Eponentiation of the law coefficient
+1 - exp(coefs[4,1])
+```
+
+There was a `r percent(1 - exp(coefs[4,1]))` decrease in  the odds of deaths beeing > 119 after the law was enacted, holding the other coefficients fixed.
+
+```{r}
+# Eponentiation of the miles coefficient
+1 - exp(coefs[3,1])
+```
+
+There was a `r percent(1 - exp(coefs[3,1]))` decrease in the odds of deaths beeing > 119 per additional 1000 driver miles per month, holding the other coefficients fixed.
+
+
+2. Fit a binomial model with DriversKilled as the outcome and drivers as the total count with kms , PetrolPrice and law as predictors, interpret your results. [Watch a video solution](https://www.youtube.com/watch?v=M2KLD_ZFgdo&list=PLpl-gQkQivXji7JK1OP1qS7zalwUBPrX0&index=53). 
+
+```{r}
+# Fit a binomial model with DriversKilled as the outcome and drivers as the total count with kms , PetrolPrice and law as predictors
+glm <- glm(cbind(DriversKilled, drivers - DriversKilled) ~ pp + mmc + law, data = sb, family="binomial")
+coefs <- summary(glm)$coef
+panderOptions('table.split.table', Inf) 
+pander(coefs, style="rmarkdown", caption="DriversKilled ~ kms + pp + law")
+```
+
+mmc & law are now positive, so there is an increase in the odds of deaths
+
+3. Refer to Question 1. Use the anova function to compare models with just law, law and PetrolPrice and all three predictors. [Watch a video solution](https://www.youtube.com/watch?v=npHpBLqkhLg&list=PLpl-gQkQivXji7JK1OP1qS7zalwUBPrX0&index=54). 
+
+
+
+
