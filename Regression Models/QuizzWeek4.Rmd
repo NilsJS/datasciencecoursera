@@ -1,0 +1,211 @@
+---
+title: "Reg Models - Week 4 Quiz"
+author: "Nils Sandøy"
+date: "September 30, 2015"
+output: pdf_document
+includes:
+  in_header: mystyles.sty
+---
+
+
+```{r, results="hide", echo=FALSE}
+# Load libraries
+library(dplyr, quietly=TRUE, warn.conflicts = FALSE)
+suppressWarnings(library(scales, quietly=TRUE))
+suppressWarnings(library(pander, quietly=TRUE))
+library(ggplot2)
+suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
+
+library(datasets)
+library(car)
+```
+
+# Question 1
+
+Consider the space shuttle data `shuttle` in the `MASS` library. 
+
+```{r}
+suppressWarnings(library(MASS, quietly=TRUE, warn.conflicts = FALSE))
+panderOptions('table.split.table', Inf) 
+pander(summary(shuttle))
+```
+
+Consider modeling the use of the autolander as the outcome (variable name `use`). Fit a logistic regression model with autolander (variable auto) use (labeled as "auto" 1) versus not (0) as predicted by wind sign (variable wind). 
+
+```{r}
+shuttle$autolander <- as.numeric(shuttle$use == "auto")
+shuttle$headwind <- as.numeric(shuttle$wind == "head")
+
+m <- glm(autolander ~ headwind, data = shuttle, family = binomial)
+panderOptions('table.split.table', Inf) 
+pander(m, style="rmarkdown")
+```
+
+Give the estimated odds ratio for autolander use comparing head winds, labeled as "head" in the variable headwind (numerator) to tail winds (denominator). 
+
+$$\frac{headwind}{tailwind}$$
+
+The *numerator* represents a number of equal parts, and the *denominator*, which cannot be zero, indicates how many of those parts make up a unit or a whole. For example, in the fraction 3/4, the numerator, 3, tells us that the fraction represents 3 equal parts, and the denominator, 4, tells us that 4 parts make up a whole. 
+
+```{r}
+coefs <- summary(m)$coef
+pander(exp(summary(m)$coef))
+pander(1- exp(summary(m)$coef))
+```
+
+Interpreting $\beta_1$ as 1 - `r exp(coefs[2,1])` = **`r round(1 - exp(coefs[2,1]), 3)`**
+
+#### Alternatives
+* *0.031* =  WRONG
+* -0.031 
+* **0.969** 
+* *1.327* = WRONG
+
+
+# Question 2
+Consider the previous problem. Give the estimated odds ratio for autolander use comparing head winds (numerator) to tail winds (denominator) **adjusting for wind strength from the variable magn**.
+
+```{r}
+
+m2 <- glm(autolander ~ headwind + factor(magn), data = shuttle, family = binomial)
+panderOptions('table.split.table', Inf) 
+pander(m2, style="rmarkdown")
+```
+
+```{r}
+coefs2 <- summary(m2)$coef
+pander(exp(summary(m2)$coef))
+pander(1- exp(summary(m2)$coef))
+```
+```
+
+Interpreting $\beta_1$ as 1 - `r exp(coefs2[2,1])` = **`r round(1 - exp(coefs2[2,1]),3)`**
+
+#### Alternatives
+* *1.00* = WRONG
+* 0.684 
+* *1.485* = WRONG
+* **0.969** 
+
+
+# Question 3
+If you fit a logistic regression model to a binary variable, for example use of the autolander, then fit a logistic regression model for one minus the outcome (not using the autolander) what happens to the coefficients?
+
+```{r}
+m <- glm(autolander ~ headwind, data = shuttle, family = binomial)
+panderOptions('table.split.table', Inf) 
+pander(m, style="rmarkdown")
+
+m <- glm((1 - autolander) ~ headwind, data = shuttle, family = binomial)
+panderOptions('table.split.table', Inf) 
+pander(m, style="rmarkdown")
+```
+
+#### Alternatives
+* **The coefficients reverse their signs.** 
+* The coefficients change in a non-linear fashion. 
+* The intercept changes sign, but the other coefficients don't. 
+* The coefficients get inverted (one over their previous value). 
+
+
+# Question 4
+Consider the insect spray data `InsectSprays`. 
+```{r}
+data("InsectSprays")
+panderOptions('table.split.table', Inf) 
+pander(summary(InsectSprays))
+```
+
+Fit a Poisson model using spray as a factor level. 
+```{r}
+m <- glm(count ~ factor(spray), data = InsectSprays, family = poisson)
+panderOptions('table.split.table', Inf) 
+pander(m)
+pander(exp(m$coef))
+pander(1 - exp(m$coef))
+```
+
+Report the *estimated relative rate* comparing spray A (numerator) to spray B (denominator).
+
+**Note**: We fit rates or proportions in Poisson models by including the temporal or sample size component as a (natural) log offset in the model specification.
+
+```{r}
+xa <- exp(summary(m)$coef[1,1])
+xb <- exp(summary(m)$coef[2,1])
+
+exp(summary(m)$coef[1,1] + summary(m)$coef[2,1])
+```
+
+B is positive, so it is interpreted as a `r xb` increase in bug kills by switching to B compared to A.  `r xb`/`r xa` = `r round(xb/xa, 3)`
+
+we interpret $e^{\beta_1}$ as the expected relative increase in the outcome for a unit change in the regressor.
+
+In our case $e^{\beta_1}$ = $e^{`r xb`}$ = **`r exp(summary(m)$coef[2,1])`**
+
+#### Alternatives
+* *0.136* : WRONG 
+* 0.9457 
+* 0.321 
+* *-0.056* : WRONG
+
+# Questions 5
+Consider a Poisson glm with an offset, t. So, for example, a model of the form `glm(count ~ x + offset(t), family = poisson)` where `x` is a factor variable comparing a treatment (1) to a control (0) and t is the natural log of a monitoring time. What is impact of the coefficient for `x` if we fit the model `glm(count ~ x + offset(t2), family = poisson)` where `t2 <- log(10) + t`? In other words, what happens to the coefficients if we change the units of the offset variable. (Note, adding log(10) on the log scale is multiplying by 10 on the original scale.)
+
+```{r}
+InsectSprays$t <- rnorm(length(InsectSprays$count),mean = 100,sd = 10)
+InsectSprays$tl <- log(InsectSprays$t)
+InsectSprays$tl2 <- log(10) + InsectSprays$t
+m1 <- glm(count ~ factor(spray) + offset(tl), data = InsectSprays, family = poisson)
+
+panderOptions('table.split.table', Inf) 
+pander(m1)
+
+m2 <- glm(count ~ factor(spray) + offset(tl2), data = InsectSprays, family = poisson)
+
+panderOptions('table.split.table', Inf) 
+pander(m2)
+
+m1$coef[2]
+log(10)
+m1$coef[2] - log(10)
+m1$coef[2] / 10
+m1$coef[2] * 10
+```
+
+
+
+#### Alternatives
+* The coefficient estimate is unchanged 
+* *The coefficient is subtracted by log(10).* = WRONG
+* *The coefficient estimate is multiplied by 10* = WRONG
+* **The coefficient estimate is divided by 10.** 
+
+
+# Question 6
+Consider the data
+```{r}
+x <- -5:5
+y <- c(5.12, 3.93, 2.67, 1.87, 0.52, 0.08, 0.93, 2.05, 2.54, 3.87, 4.97)
+
+plot(x,y)
+````
+
+Using a knot point at 0, fit a linear model that looks like a hockey stick with two lines meeting at x=0. Include an intercept term, x and the knot point term. What is the estimated slope of the line after 0? 
+
+```{r}
+knot <- c(0,0)
+splineTerms <- sapply(knot, function(knot) (x > knot) * (x - knot))
+xMat <- cbind(1, x, splineTerms)
+yhat <- predict(lm(y ~ xMat - 1))
+## perform the plot
+plot(x, y, frame = FALSE, pch = 21, bg = "lightblue", cex = 2)
+lines(x, yhat, col = "red", lwd = 2)
+
+```
+
+#### Alternatives
+* -1.024 
+* **1.013** 
+* 2.037 
+* -0.183 
+
