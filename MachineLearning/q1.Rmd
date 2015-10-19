@@ -1,0 +1,22 @@
+---
+title: "MachineLearning - Quizz 1"
+output: pdf_document
+includes:
+  in_header: mystyles.sty
+---
+
+
+```{r, results="hide", echo=FALSE}
+# Load libraries
+library(dplyr, quietly=TRUE, warn.conflicts = FALSE)
+suppressWarnings(library(scales, quietly=TRUE))
+suppressWarnings(library(pander, quietly=TRUE))
+library(ggplot2)
+suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
+
+library(datasets)
+library(car)
+```
+
+# Question 1
+

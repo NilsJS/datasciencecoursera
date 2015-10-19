@@ -1,0 +1,112 @@
+---
+title: "Machine Learning Notes - Week 2"
+author: "Nils sandøy"
+date: "October 12, 2015"
+output: pdf_document
+---
+
+# SPAM Example: Data splitting 
+```{r}
+library(caret)
+library(kernlab)
+data(spam)
+
+# Split datra into 75% training & 25% test
+inTrain <- createDataPartition(y=spam$type, p=0.75, list=FALSE) 
+
+# Subset spam by the data that is in the inTrain set
+training <- spam[inTrain,]
+
+#subset spam by the remaining data that is not in the inTrain set
+testing <- spam[-inTrain, ] 
+dim(training) 
+```
+
+# SPAM Example: Fit a model 
+```{r}
+set.seed( 32343 )
+modelFit <- train(type~., data=training, method="glm") 
+modelFit 
+```
+
+# SPAM Example: Final model
+```{r}
+modelFit <- train(type~., data=testing, method="glm") 
+modelFit$finalModel
+```
+
+# SPAM Example: Prediction 
+```{r}
+predictions <- predict(modelFit, newdata=testing) 
+predictions 
+```
+
+# SPAM Example: Confusion matrix
+```{r}
+confusionMatrix(predictions, testing$type)
+```
+
+# SPAM Example: K-fold 
+```{r}
+set.seed(32323) 
+folds <- createFolds(y=spam$type, k=10, list=TRUE,returnTrain=TRUE) 
+sapply( folds , length) 
+folds[[1]][1:10]
+```
+
+# SPAM Example: Resampling 
+```{r}
+set.seed(32323) 
+folds <-createResample(y=spam$type, times=10,list=TRUE) 
+sapply( folds , length) 
+folds[[1]][1:10]
+```
+
+# SPAM Example: Time-slices 
+```{r}
+set.seed(32323) 
+tme <- 1:1000
+folds <- createTimeSlices(y=tme, initialWindow=20,horizon=10) 
+names(folds)
+folds$train[[1]]
+folds$test[[1]]
+```
+
+
+#Training Options
+
+# SPAM Example
+```{r}
+# Split datra into 75% training & 25% test
+inTrain <- createDataPartition(y=spam$type, p=0.75, list=FALSE) 
+
+# Subset spam by the data that is in the inTrain set
+training <- spam[inTrain,]
+#subset spam by the remaining data that is not in the inTrain set
+testing <- spam[-inTrain, ]
+
+modelFit <- train(type~., data=training, method="glm")
+```
+
+
+## Example: Wage data
+
+```{r loadData,cache=TRUE}
+library(ISLR); library(ggplot2); library(caret); library(gridExtra);
+data(Wage)
+summary(Wage)
+```
+
+
+
+---
+
+## Get training/test sets
+
+```{r trainingTest,dependson="loadData",cache=TRUE}
+inTrain <- createDataPartition(y=Wage$wage,
+                              p=0.7, list=FALSE)
+training <- Wage[inTrain,]
+testing <- Wage[-inTrain,]
+dim(training); dim(testing)
+```
