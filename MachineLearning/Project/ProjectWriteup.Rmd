@@ -15,9 +15,8 @@ suppressWarnings(library(scales, quietly=TRUE))
 suppressWarnings(library(pander, quietly=TRUE))
 library(ggplot2)
 suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
-
-library(datasets)
-library(car)
+library(caret)
+library(AppliedPredictiveModeling)
 ```
 
 # Assignment Background
@@ -43,12 +42,17 @@ if (!file.exists(tstf))
 testdat <- read.csv(tstf)
 ```
 
-The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases. 
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing **how you built your model**, how you used **cross validation**, what you think the **expected out of sample error** is, and why you made the **choices** you did. You will also use your prediction model to **predict 20 different test cases**. 
 
 1. Your submission should consist of a link to a Github repo with your R markdown and compiled HTML file describing your analysis. Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5. It will make it easier for the graders if you submit a repo with a gh-pages branch so the HTML page can be viewed online (and you always want to make it easy on graders :-).
+
 2. You should also apply your machine learning algorithm to the 20 test cases available in the test data above. Please submit your predictions in appropriate format to the programming assignment for automated grading. See the programming assignment for additional details. 
+
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (**Class A**), throwing the elbows to the front (**Class B**), lifting the dumbbell only halfway (**Class C**), lowering the dumbbell only halfway (**Class D**) and throwing the hips to the front (**Class E**).
+
 ```{r}
 # Exploration
 library(dplyr)
 pander(tally(group_by(traindat, classe), sort = TRUE))
 ```
+
