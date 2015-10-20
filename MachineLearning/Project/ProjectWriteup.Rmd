@@ -1,11 +1,12 @@
 ---
 title: "Machine Learning - Project"
+includes:
+  in_header: mystyles.sty
 output:
   html_document: default
   pdf_document:
     fig_caption: yes
-includes:
-  in_header: mystyles.sty
+bibliography: bibliography.bib
 ---
 
 ```{r, results="hide", echo=FALSE}
@@ -15,15 +16,12 @@ suppressWarnings(library(scales, quietly=TRUE))
 suppressWarnings(library(pander, quietly=TRUE))
 library(ggplot2)
 suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
+library(lattice)
 library(caret)
 library(AppliedPredictiveModeling)
 ```
 
-# Assignment Background
-
-Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
-
-```{r cache=FALSE}
+```{r cache=FALSE, echo = FALSE}
 # Download the test and training data sets
 if (!file.exists("./data")) dir.create("./data")
 
@@ -32,15 +30,20 @@ tdf <- "./data/pml-training.csv"
 if (!file.exists(tdf))
     download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", 
                   destfile=tdf, method="curl")
-traindat <- read.csv(tdf)
+# Treat the division by zero erros as NA
+traindat <- read.csv(tdf, na.strings = c("NA", "#DIV/0!"))
 
 # Testing data
 tstf <- "./data/pml-testing.csv"
 if (!file.exists(tstf))
   download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", 
                 destfile=tstf, method="curl")
-testdat <- read.csv(tstf)
+testdat <- read.csv(tstf, na.strings = c("NA", "#DIV/0!"))
 ```
+
+# Assignment Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
 
 The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing **how you built your model**, how you used **cross validation**, what you think the **expected out of sample error** is, and why you made the **choices** you did. You will also use your prediction model to **predict 20 different test cases**. 
 
@@ -48,11 +51,53 @@ The goal of your project is to predict the manner in which they did the exercise
 
 2. You should also apply your machine learning algorithm to the 20 test cases available in the test data above. Please submit your predictions in appropriate format to the programming assignment for automated grading. See the programming assignment for additional details. 
 
-Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (**Class A**), throwing the elbows to the front (**Class B**), lifting the dumbbell only halfway (**Class C**), lowering the dumbbell only halfway (**Class D**) and throwing the hips to the front (**Class E**).
+# Overview 
+The data is based on the HAR study [@har2012], where six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (**Class A**), throwing the elbows to the front (**Class B**), lifting the dumbbell only halfway (**Class C**), lowering the dumbbell only halfway (**Class D**) and throwing the hips to the front (**Class E**).  I will use data from accelerometers on the **belt**, **forearm**, **arm**, and **dumbell** of these participants. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har
 
 ```{r}
 # Exploration
 library(dplyr)
 pander(tally(group_by(traindat, classe), sort = TRUE))
+
+# Explore missing values
+library(VIM)
+aggr(traindat, plot=TRUE, combined=TRUE)
+
+
+#traindat_original <- traindat
+#str(traindat)
 ```
 
+# Building a Model  
+
+Describe how I built my model, and why I have made the choices I did.
+
+```{r}
+set.seed(34542)
+# Only use the variables associated with the focus areas: belt, forearm, arm, and dumbell
+training <- select(traindat, classe, contains('_belt'), contains('_forearm'), contains('_arm'), contains('_dumbell'))
+# Remove the max, min, avg, var & stddev summary variables as these are mostly NA
+training <- select(training, -starts_with('var_'),-starts_with('avg_'),-starts_with('stddev_'),-starts_with('max_'),-starts_with('min_'))
+
+#str(training)
+#summary(training)
+# modelFit <- train(classe~., data=training, 
+#                   preProcess=c("knnImpute"), # Use K-Nearest-Neighbor to impute values for all the NAs
+#                   method="glm")
+#modelFit
+```
+
+# Cross Validataion
+
+# Receiver Operating Caracteristic (ROC) 
+
+
+# Accuracy
+
+Expected out of sample error.
+
+# Predictions
+
+Predict 20 different test cases.
+
+# Bibliography
