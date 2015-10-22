@@ -1,5 +1,5 @@
 ---
-title: "Machine Learning - HAR Project"
+title: "Machine Learning Project - Human Activity Recognition "
 includes:
   in_header: mystyles.sty
 output:
@@ -27,6 +27,7 @@ suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
 library(lattice)
 library(caret)
 library(AppliedPredictiveModeling)
+library(randomForest)
 ```
 
 
@@ -58,80 +59,167 @@ testdat <- read.csv(tstf, na.strings = c("NA", "#DIV/0!", "", "NaN"))
 
 I'm treating *division by zero* errors, empty string, "NaN" and "NA", as *"Not Available"* - **NA**.  
 
-```{r}
-nrow(traindat)
-cc <- complete.cases(traindat)
-sum(!cc)
-sum(cc)
-#nrow(mc)
-#sum
-traindat <- subset(traindat, new_window == 'yes')
-nrow(traindat)
-```
+# Models - new_window == yes/no
+
+From exploring the data it seems that unless new_window is yes, all the aggregated variables (avg, var, sdtdev, max, min) are empty.  I will try two models based on wether new_window is 'yes' or 'no'.
 
 ```{r}
-# Exploration
-library(dplyr)
-pander(tally(group_by(traindat, classe), sort = TRUE))
-
-# Explore missing values
-library(VIM)
-#pander(aggr(traindat, plot=FALSE, combined=TRUE, numbers = FALSE, prop = TRUE))
-aggr(traindat, plot=FALSE, only.miss=TRUE)
-
-#traindat_original <- traindat
-#str(traindat)
-```
-
-# Building a Model  
-
-Describe how I built my model, and why I have made the choices I did.
-
-```{r}
-set.seed(34542)
-# Only use the variables associated with the focus areas: belt, forearm, arm, and dumbell
-training <- select(traindat, classe, 
+traindat1 <- subset(traindat, new_window == 'yes')
+traindat2 <- subset(traindat, new_window == 'no')
+testdat1 <- subset(testdat, new_window == 'yes')
+testdat2 <- subset(testdat, new_window == 'no')
+# Only use the variables associated with the focus areas: belt, forearm, arm, and dumbell:
+traindat1 <- select(traindat1, classe, 
                    contains('_belt'), 
                    contains('_forearm'), 
                    contains('_arm'), 
                    contains('_dumbell'))
+traindat2 <- select(traindat2, classe, 
+                   contains('_belt'), 
+                   contains('_forearm'), 
+                   contains('_arm'), 
+                   contains('_dumbell'))
+testdat1 <- select(testdat1, #classe, 
+                   contains('_belt'), 
+                   contains('_forearm'), 
+                   contains('_arm'), 
+                   contains('_dumbell'))
+testdat2 <- select(testdat2, #classe, 
+                   contains('_belt'), 
+                   contains('_forearm'), 
+                   contains('_arm'), 
+                   contains('_dumbell'))
+```
+
+```{r echo = FALSE}
+pander(tally(group_by(traindat1, classe), sort = TRUE))
+
+# Explore missing values
+library(VIM)
+aggr(traindat1, plot=FALSE, only.miss=TRUE)
+aggr(traindat2, plot=FALSE, only.miss=TRUE)
+```
+
+The kurtosis and skewness variables have a lot of NAs. I will remove these. 
+
+```{r}
+set.seed(34542)
 # Remove columns that are mostly NA
-training <- select(training, 
+training1 <- select(traindat1, 
                    -starts_with('kurtosis_yaw'),
                    -starts_with('skewness_yaw'))
-# Remove the max, min, avg, var & stddev summary variables as these are mostly NA
-# training <- select(training, 
-#                    -starts_with('var_'),
-#                    -starts_with('avg_'),
-#                    -starts_with('stddev_'),
-#                    -starts_with('max_'),
-#                    -starts_with('min_'))
+testing1 <- select(testdat1, 
+                   -starts_with('kurtosis_yaw'),
+                   -starts_with('skewness_yaw'))
 
 # Do we have any more NAs?
-aggr(training, plot=FALSE, only.miss=TRUE)
-histMiss(training)
-summary(training)
+aggr(training1, plot=FALSE, only.miss=TRUE)
+histMiss(training1)
 ```
 
-## Build a model
+In the training2 set (newq_window='no') the aggregated variables are empty.  I will remove these.
+
 ```{r}
-#str(training)
-#summary(training)
-#training.imputed <- impute.knn(as.matrix(training))
-#preProc <- preProcess(as.matrix(training), method="knnImpute")
-# modelFit <- train(classe~., data=training, 
-# #                   na.action = na.omit,
-# #                 preProcess=c("knnImpute"), # Use K-Nearest-Neighbor to impute values for all the NAs
-#                  method="rf") # use random forest 
-# modelFit
+# Remove the max, min, avg, var & stddev summary variables as these are mostly NA
+training2 <- select(traindat2, 
+                   -starts_with('kurtosis_'),
+                   -starts_with('skewness_'),
+                   -starts_with('amplitude_'),
+                   -starts_with('var_'),
+                   -starts_with('avg_'),
+                   -starts_with('stddev_'),
+                   -starts_with('max_'),
+                   -starts_with('min_'))
+testing2 <- select(testdat2, 
+                   -starts_with('kurtosis_'),
+                   -starts_with('skewness_'),
+                   -starts_with('amplitude_'),
+                   -starts_with('var_'),
+                   -starts_with('avg_'),
+                   -starts_with('stddev_'),
+                   -starts_with('max_'),
+                   -starts_with('min_'))
+
+# Do we have any more NAs?
+aggr(training2, plot=FALSE, only.miss=TRUE)
+histMiss(training2)
+#summary(training2)
 ```
 
-# Cross Validataion
+## Data partition
+Partition the data sets so that we have some testdata to work on before going for the official test set.
+
+```{r}
+set.seed(198346)
+# Set 1
+inTrain1 <- createDataPartition(y=training1$classe, p=0.75, list=FALSE)
+train1 <- training1[inTrain1, ]
+preTest1 <- training1[-inTrain1, ]
+# Set 2
+inTrain2 <- createDataPartition(y=training2$classe, p=0.75, list=FALSE)
+train2 <- training2[inTrain2, ]
+preTest2 <- training2[-inTrain2, ]
+```
+
+## Cross validation
+
+Use a 7 fold cross validation in order to reduce bias and/or variance.
+```{r}
+control <- trainControl(method="cv", 7) 
+```
+
+
+## Build models
+I have chosen the random forest algorithm as it is pretty good in classification.
+
+For model1 I will impute data for the missing values (NAs).
+
+```{r train_model1, echo=TRUE, warning=FALSE, cache=TRUE, message=FALSE}
+set.seed(239045)
+modelFit1 <- train(classe~., data=train1, trControl=control,
+                   preProcess=c("knnImpute"), # Use K-Nearest-Neighbor to impute values for all the NAs
+                   method="rf") # use random forest 
+modelFit1
+```
+
+The results from this first model are not very good.  Accuracy is in the 60-70% range.  
+
+The training2 set is very large, so to save time I have chosen to limit the number of trees to 100.
+
+```{r train_model2, echo=TRUE, warning=FALSE, cache=TRUE, message=FALSE}
+set.seed(239045)
+modelFit2 <- train(classe~., data=train2, trControl=control,
+                   na.action = na.omit,
+                   method="rf", # use random forest 
+                   ntree=100)
+modelFit2
+```
+
+Accuracy is much better for model2.  This is the model that I will continue with.
+
+### Final Model
+```{r}
+modelFit2$finalModel
+```
+
+# Prediction on pre-test sets
+```{r prediction2, echo=TRUE, cache=TRUE}
+predTest2 <- predict(modelFit2, newdata = preTest2)
+confmat2 <- confusionMatrix(preTest2$classe, predTest2)
+confmat2
+```
+
 
 # Receiver Operating Caracteristic (ROC) 
 
 
 # Accuracy
+Run prediction on official test set
+```{r}
+pred2 <- predict(modelFit2, newdata = testing2)
+pred2
+```
+
 
 Expected out of sample error.
 
