@@ -116,7 +116,7 @@ testing2 <- select(testdat2, -one_of(rownames(subset(nsv, zeroVar==TRUE))))
 ```
 
 ## Data partition
-Partition the data sets so that we have some testdata to work on before going for the official test set.  The test set we downloaded is just for final validation, it does not have the classe variable, so we need to test our model on a subset of the training data. 
+Partition the data sets so that we have some test data to work on before going for the official test set.  The test set we downloaded is just for final validation, it does not have the classe variable, so we need to test our model on a subset of the training data. 
 
 ```{r}
 set.seed(198346)
@@ -140,7 +140,7 @@ control2 <- trainControl(method="cv", number=7, allowParallel = TRUE)
 
 
 ## Build models (fitting)
-I have chosen the random forest algorithm as it is pretty good in classification, but in order to avoid overfitting I'm using cross validation.  THe first model will try 4-fold cross validation.
+I have chosen the random forest algorithm as it is pretty good in classification, but in order to avoid over fitting I'm using cross validation.  The first model will try 4-fold cross validation.
 
 For model1 I will impute data for the missing values (NAs).
 
@@ -196,7 +196,13 @@ confmat
 
 Accuracy for modelFit3:  `r percent(confmat$overall[1])`
 
-# Prediciont and Submission
+
+**TODO**: Predict out-of sample error!
+
+Ref: http://www.dataschool.io/simple-guide-to-confusion-matrix-terminology/
+
+
+# Prediction and Submission
 Run prediction on official test set (20 different test cases). This set does not have the *classe* variable.
 ```{r}
 predicted_answers <- predict(modelFit2, testing2)
@@ -218,7 +224,5 @@ write_submission_files = function(x){
 write_submission_files(predicted_answers)
 ```
 
-
-Expected out of sample error.
 
 # Bibliography
