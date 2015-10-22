@@ -179,28 +179,15 @@ modelFit3 <- train(classe~., data=train2, trControl=control2,
 modelFit3
 ```
 
+7-fold cross validation did the trick.  We'll go with modelFit3.
+
 ### Final Model
 ```{r}
-modelFit2$finalModel
-
-modelFit2$finalModel
+modelFit3$finalModel
 head(getTree(modelFit2$finalModel, k=27), 20) # 27 was the final model chosen
-#plot(modelFit2$finalModel, 1, pch=19, cex=.5, col="#00000010")
-#library(RGtk2)
-#library(rattle)
-#fancyRpartPlot(modelFit2$finalModel)
 ```
 
 # Prediction on pre-test sets
-```{r prediction, echo=TRUE, cache=TRUE}
-predTest <- predict(modelFit2, newdata = preTest2)
-
-confmat <- confusionMatrix(preTest2$classe, predTest)
-confmat
-```
-
-Accuracy for modelFit2:  `r paste(round(confmat$overall[1]*100,2), "%")`
-
 ```{r prediction, echo=TRUE, cache=TRUE}
 predTest <- predict(modelFit3, newdata = preTest2)
 
@@ -208,27 +195,31 @@ confmat <- confusionMatrix(preTest2$classe, predTest)
 confmat
 ```
 
-Accuracy for modelFit3:  `r paste(round(confmat$overall[1]*100,2), "%")`
+Accuracy for modelFit3:  `r percent(confmat$overall[1])`
 
-# Receiver Operating Caracteristic (ROC) 
-
-
-# Accuracy
-Run prediction on official test set.  This set does not have the *classe* variable.
+# Prediciont and Submission
+Run prediction on official test set (20 different test cases). This set does not have the *classe* variable.
 ```{r}
-predTesting2 <- predict(modelFit2, testing2)
-predTesting2
-#testing2$predRight <- predTesting2$classe
-#table(predTesting2, testing2$classe)
-#confmat <- confusionMatrix(testing2$classe, predTesting2)
-#confmat
-#qplot()
+predicted_answers <- predict(modelFit2, testing2)
+predicted_answers
 ```
 
+```{r echo = FALSE}
+
+# Creating files for submission
+write_submission_files = function(x){
+     n = length(x)
+     for(i in 1:n){
+          write.table(x[i],
+                      file=paste0("problem_id_",i,".txt"),
+                      quote=FALSE,row.names=FALSE,col.names=FALSE)
+     }
+}
+
+write_submission_files(predicted_answers)
+```
+
+
 Expected out of sample error.
-
-# Predictions
-
-Predict 20 different test cases.
 
 # Bibliography
