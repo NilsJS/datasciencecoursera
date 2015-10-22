@@ -192,7 +192,7 @@ head(getTree(modelFit2$finalModel, k=27), 20) # 27 was the final model chosen
 ```
 
 # Prediction on pre-test sets
-```{r prediction, echo=TRUE, cache=TRUE}
+```{r prediction2, echo=TRUE, cache=TRUE}
 predTest <- predict(modelFit2, newdata = preTest2)
 
 confmat <- confusionMatrix(preTest2$classe, predTest)
@@ -201,7 +201,7 @@ confmat
 
 Accuracy for modelFit2:  `r paste(round(confmat$overall[1]*100,2), "%")`
 
-```{r prediction, echo=TRUE, cache=TRUE}
+```{r prediction3, echo=TRUE, cache=TRUE}
 predTest <- predict(modelFit3, newdata = preTest2)
 
 confmat <- confusionMatrix(preTest2$classe, predTest)
