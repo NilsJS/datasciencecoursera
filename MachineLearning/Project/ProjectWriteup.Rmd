@@ -200,6 +200,7 @@ Accuracy is much better for model2.  This is the model that I will continue with
 ### Final Model
 ```{r}
 modelFit2$finalModel
+#plot(modelFit2$finalModel, 1, pch=19, cex=.5, col="#00000010")
 ```
 
 # Prediction on pre-test sets
