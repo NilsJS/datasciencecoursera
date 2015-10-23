@@ -24,23 +24,20 @@ library(colorspace)
 library(grid)
 library(data.table, quietly=TRUE, warn.conflict=FALSE)
 suppressPackageStartupMessages(library(VIM, quietly=TRUE, warn.conflict=FALSE))
+library(curl)
+suppressPackageStartupMessages(library(rattle))
+suppressPackageStartupMessages(library(rpart.plot))
 ```
 
-# Assignment Background
-The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing **how you built your model**, how you used **cross validation**, what you think the **expected out of sample error** is, and why you made the **choices** you did. You will also use your prediction model to **predict 20 different test cases**. 
-
-1. Your submission should consist of a link to a Github repo with your R markdown and compiled HTML file describing your analysis. Please constrain the text of the write up to < 2000 words and the number of figures to be less than 5. It will make it easier for the graders if you submit a repo with a gh-pages branch so the HTML page can be viewed online (and you always want to make it easy on graders :-).
-
-2. You should also apply your machine learning algorithm to the 20 test cases available in the test data above. Please submit your predictions in appropriate format to the programming assignment for automated grading. See the programming assignment for additional details. 
-
-
 # Overview 
+
 The data is based on the HAR study [@har2012], where six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (**Class A**), throwing the elbows to the front (**Class B**), lifting the dumbbell only halfway (**Class C**), lowering the dumbbell only halfway (**Class D**) and throwing the hips to the front (**Class E**).  More information is available from the website here: http://groupware.les.inf.puc-rio.br/har
 
 I will use data from accelerometers on the **belt**, **forearm**, **arm**, and **dumbell** of these participants.  The goal of this project is to predict the manner in which they did the exercise.  This is the **"classe"** variable in the training set.
 
-## Data aquisition and cleanup
-```{r cache=TRUE, echo = TRUE}
+# Data aquisition and cleanup
+
+```{r download_and_read, cache=TRUE, echo = TRUE}
 # Download the test and training data sets
 if (!file.exists("./data")) dir.create("./data")
 
@@ -80,7 +77,7 @@ I'm treating *division by zero* errors, empty string, "NaN" and "NA", as *"Not A
 
 From exploring the data it seems that unless new_window is yes, all the aggregated variables (avg, var, sdtdev, max, min) are empty.  I will try two sets based on wether new_window is 'yes' or 'no'.
 
-```{r}
+```{r create_new_window_sets}
 traindat1 <- subset(traindat, new_window == 'yes')
 testdat1 <- subset(testdat, new_window == 'yes')
 traindat2 <- subset(traindat, new_window == 'no')
@@ -88,14 +85,14 @@ testdat2 <- subset(testdat, new_window == 'no')
 ```
 
 ## Set1: Investigate zero variance
-```{r}
+```{r nsv_traindat1}
 nsv <- nearZeroVar(traindat1, saveMetrics=TRUE)
 subset(nsv, zeroVar==TRUE)
 ```
 
 The kurtosis, skewness, and amplitude variables have zero variance. I will remove these. 
 
-```{r}
+```{r remove_nsv_training1}
 # Remove columns that near zero variance
 training1 <- select(traindat1, -one_of(rownames(subset(nsv, zeroVar==TRUE))))
 testing1 <- select(testdat1, -one_of(rownames(subset(nsv, zeroVar==TRUE))))
@@ -103,14 +100,14 @@ testing1 <- select(testdat1, -one_of(rownames(subset(nsv, zeroVar==TRUE))))
 
 ## Set2: Investigate zero variance
 
-```{r}
+```{r nsv_traindat2}
 nsv <- nearZeroVar(traindat2, saveMetrics=TRUE)
 head(subset(nsv, zeroVar==TRUE), 20)
 ```
 
 In the traindat2 set (newq_window='no') the aggregated variables are empty.  I will remove these.
 
-```{r}
+```{r remove_nsv_traindat2}
 training2 <- select(traindat2, -one_of(rownames(subset(nsv, zeroVar==TRUE))))
 testing2 <- select(testdat2, -one_of(rownames(subset(nsv, zeroVar==TRUE))))
 ```
@@ -118,7 +115,7 @@ testing2 <- select(testdat2, -one_of(rownames(subset(nsv, zeroVar==TRUE))))
 ## Data partition
 Partition the data sets so that we have some test data to work on before going for the official test set.  The test set we downloaded is just for final validation, it does not have the classe variable, so we need to test our model on a subset of the training data. 
 
-```{r}
+```{r data_partitions}
 set.seed(198346)
 # Set 1
 inTrain1 <- createDataPartition(y=training1$classe, p=0.75, list=FALSE)
@@ -133,14 +130,17 @@ preTest2 <- training2[-inTrain2, ]
 ## Cross validation
 
 Use cross validation in order to reduce bias and/or variance.
-```{r}
+```{r create_cvs}
 control1 <- trainControl(method="cv", number=4, allowParallel = TRUE) 
 control2 <- trainControl(method="cv", number=7, allowParallel = TRUE) 
 ```
 
 
 ## Build models (fitting)
+
 I have chosen the random forest algorithm as it is pretty good in classification, but in order to avoid over fitting I'm using cross validation.  The first model will try 4-fold cross validation.
+
+### Random forest model with 4-fold cross validation (data set 1 - new_window=yes)
 
 For model1 I will impute data for the missing values (NAs).
 
@@ -155,6 +155,8 @@ modelFit1
 
 The results from this first model are not very good.  Accuracy is in the 70-80% range.  
 
+### Random forest model with 4-fold cross validation (data set 2 - new_window=no)
+
 The training2 set is very large, so to save time I have chosen to limit the number of trees to 100.
 
 ```{r train_model2, echo=TRUE, warning=FALSE, cache=TRUE, message=FALSE}
@@ -167,7 +169,11 @@ modelFit2 <- train(classe~., data=train2, trControl=control1,
 modelFit2
 ```
 
-Accuracy is much better for modelFit2.  Let us see if 7-fold cross validation is better than 4-fold...
+Accuracy is much better for modelFit2, it seems that data set 2 (new_window=yes) is the better approach.  
+
+### Random forest model with 7-fold cross validation (data set 2 - new_window=no)
+
+Let us see if 7-fold cross validation is better than 4-fold...
 
 ```{r train_model3, echo=TRUE, warning=FALSE, cache=TRUE, message=FALSE}
 set.seed(239045)
@@ -179,11 +185,33 @@ modelFit3 <- train(classe~., data=train2, trControl=control2,
 modelFit3
 ```
 
-7-fold cross validation did the trick.  We'll go with modelFit3.
+7-fold cross validation did the trick.  Accuracy is better than for 4-fold. 
 
-### Final Model
-```{r}
+### rpart model (data set 2 - new_window=no)
+
+Let us compare the random forest model with an rpart version...
+
+```{r train_rpart_model, echo=TRUE, warning=FALSE, cache=TRUE, message=FALSE}
+set.seed(239045)
+modelFitRpart <- train(classe~., data=train2, method="rpart")
+modelFitRpart
+```
+
+Rpart is nice in the sense that it is easier to visualize and understand.
+
+```{r plot_rpart}
+fancyRpartPlot(modelFitRpart$finalModel)
+```
+
+Nice as this model is, the random Forest model is more accurate.  
+
+## Final Model
+
+We will go with **modelFit3** (random forest with 7-fold cross validation).
+
+```{r print_final_model}
 modelFit3$finalModel
+summary(modelFit3$finalModel)
 head(getTree(modelFit2$finalModel, k=27), 20) # 27 was the final model chosen
 ```
 
@@ -194,22 +222,29 @@ confmat <- confusionMatrix(preTest2$classe, predTest)
 confmat
 ```
 
-Accuracy for modelFit3:  `r percent(confmat$overall[1])`
+Accuracy for modelFit3:  **`r percent(confmat$overall[1])`**
 
+## Predicted *out of sample* error
 
-**TODO**: Predict out-of sample error!
+What error rate can we expect when we apply this model to a new data set, such as the official test for this assignment?  Out of sample error is a problem that may be caused by overfitting.  
 
-Ref: http://www.dataschool.io/simple-guide-to-confusion-matrix-terminology/
+```{r}
+ose <- 1 - confmat$overall[1]
+```
 
+Estimated out of sample error for modelFit3 is *1 - Accuracy* for the final model above: 1 - `r round(confmat$overall[1],4)` = **`r ose`** (`r percent(ose)`).  I.e we expect `r round(1000*ose, 0)` errors out of every 1000 predictions on a new test set. 
+
+# Conclusion
+In pre processing I have filtered the data set on **new_window=no**.  I have removed variables with **zero variance**.  The most accurate model I have found is **random forest** with **7-fold cross validation**.  Given a predicted **`r percent(1 - confmat$overall[1])`** out of sample errors, I can expect to get `r round(ose*20, 2)` predictions wrong in the 20 final test cases.  As this is less than 1 the model should correctly predict all cases.
 
 # Prediction and Submission
 Run prediction on official test set (20 different test cases). This set does not have the *classe* variable.
-```{r}
+```{r official_prediction}
 predicted_answers <- predict(modelFit2, testing2)
 predicted_answers
 ```
 
-```{r echo = FALSE}
+```{r write_submission_files, echo = FALSE}
 
 # Creating files for submission
 write_submission_files = function(x){
