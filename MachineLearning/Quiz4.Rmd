@@ -6,9 +6,11 @@ output: html_document
 ---
 ```{r, results="hide", echo=FALSE}
 # Load libraries
-library(dplyr, quietly=TRUE, warn.conflicts = FALSE)
+#library(dplyr, quietly=TRUE, warn.conflicts = FALSE)
 suppressWarnings(library(scales, quietly=TRUE))
 suppressWarnings(library(pander, quietly=TRUE))
+library(caret)
+library(ElemStatLearn)
 ```
 
 # Question 1
@@ -16,14 +18,56 @@ suppressWarnings(library(pander, quietly=TRUE))
 Load the vowel.train and vowel.test data sets: 
 
 ```{r}
-library(ElemStatLearn)
 data(vowel.train)
 data(vowel.test) 
 ```
 
-Set the variable y to be a factor variable in both the training and test set. Then set the seed to 33833. Fit (1) a random forest predictor relating the factor variable y to the remaining variables and (2) a boosted predictor using the "gbm" method. Fit these both with the train() command in the caret package. 
+Set the variable y to be a factor variable in both the training and test set. Then set the seed to 33833. 
 
-What are the accuracies for the two approaches on the test data set? What is the accuracy among the test set samples where the two methods agree? 
+```{r}
+head(vowel.train)
+vowel.train$y <- as.factor(vowel.train$y)
+vowel.test$y <- as.factor(vowel.test$y)
+```
+
+Fit (1) a random forest predictor relating the factor variable y to the remaining variables and (2) a boosted predictor using the "gbm" method. Fit these both with the train() command in the caret package. 
+
+```{r q1_training, warning=FALSE, cache=TRUE, message=FALSE}
+set.seed(33833)
+fit1 <- train(y~., data=vowel.train, method="rf")
+fit2 <- train(y~., data=vowel.train, method="gbm", verbose = FALSE)
+```
+
+What are the accuracies for the two approaches on the test data set? 
+
+```{r q1_prediction_m1, echo=TRUE, cache=FALSE}
+pred1 <- predict(fit1, newdata = vowel.test)
+cm1 <- confusionMatrix(vowel.test$y, pred1)
+```
+
+```{r q1_prediction_2, echo=TRUE, cache=FALSE}
+pred2 <- predict(fit2, newdata = vowel.test)
+cm2 <- confusionMatrix(vowel.test$y, pred2)
+```
+
+What is the accuracy among the test set samples where the two methods agree? 
+
+```{r q1_combined_model, cache=FALSE}
+head(pred1)
+pred2
+# Find where the models agree
+agreement <- pred1 == pred2
+#agreement
+predAgree <- pred1[agreement]
+#predAgree
+testSubset <- vowel.test$y[agreement]
+#testSubset
+cmCombined <-confusionMatrix(predAgree, testSubset)
+```
+
+- Accuracy for model fit1:  **`r cm1$overall[1]`**
+- Accuracy for model fit2:  **`r cm2$overall[1]`**
+- Accuracy for model fitCombined:  **`r cmCombined$overall[1]`**
 
 1. Alternative 1
 RF Accuracy = 0.6082 
@@ -35,7 +79,7 @@ RF Accuracy = 0.3233
 GBM Accuracy = 0.8371 
 Agreement Accuracy = 0.9983 
 
-3. Alternative 3
+**3. Alternative 3**
 RF Accuracy = 0.6082 
 GBM Accuracy = 0.5152 
 Agreement Accuracy = 0.6361 
@@ -61,9 +105,53 @@ training = adData[ inTrain,]
 testing = adData[-inTrain,]
 ```
 
-Set the seed to 62433 and predict diagnosis with all the other variables using a random forest ("rf"), boosted trees ("gbm") and linear discriminant analysis ("lda") model. Stack the predictions together using random forests ("rf"). What is the resulting accuracy on the test set? Is it better or worse than each of the individual predictions? 
+Set the seed to 62433 and predict diagnosis with all the other variables using 
+* random forest ("rf")
+* boosted trees ("gbm") 
+* linear discriminant analysis ("lda") model. 
 
-1. Stacked Accuracy: 0.88 is better than all three other methods 
+```{r q2_training, warning=FALSE, cache=TRUE, message=FALSE}
+set.seed(62433)
+fitq2_1 <- train(diagnosis~., data=training, method="rf")
+fitq2_2 <- train(diagnosis~., data=training, method="gbm", verbose = FALSE)
+fitq2_3 <- train(diagnosis~., data=training, method="lda")
+
+predq2_1 <- predict(fitq2_1, newdata = testing)
+predq2_2 <- predict(fitq2_2, newdata = testing)
+predq2_3 <- predict(fitq2_3, newdata = testing)
+```
+
+Stack the predictions together using random forests ("rf"). 
+
+```{r q2_stacking, cache=TRUE}
+predDF <- data.frame(predq2_1, predq2_2, predq2_3, diagnosis=testing$diagnosis)
+fitq2_4 <- train(diagnosis~., method="rf", data=predDF)
+predq2_4 <- predict(fitq2_4, newdata = predDF)
+```
+
+What is the resulting accuracy on the test set? Is it better or worse than each of the individual predictions? 
+
+```{r q2_confusion}
+# fitq2_1
+# fitq2_2
+# fitq2_3
+# fitq2_4
+
+cmq2_1 <- confusionMatrix(predq2_1, testing$diagnosis)
+cmq2_2 <- confusionMatrix(predq2_2, testing$diagnosis)
+cmq2_3 <- confusionMatrix(predq2_3, testing$diagnosis)
+cmq2_4 <- confusionMatrix(predq2_4, testing$diagnosis)
+
+
+```
+
+- Accuracy for model fitq2_1 (rf):  **`r cmq2_1$overall[1]`**
+- Accuracy for model fitq2_2 (gbm):  **`r cmq2_2$overall[1]`**
+- Accuracy for model fitq2_3 (lda):  **`r cmq2_3$overall[1]`**
+- Accuracy for model fitq2_4 (stacked):  **`r cmq2_4$overall[1]`**
+
+
+1. **Stacked Accuracy: 0.88 is better than all three other methods **
 2. Stacked Accuracy: 0.93 is better than all three other methods 
 3. Stacked Accuracy: 0.80 is better than random forests and lda and the same as boosting.  
 4. Stacked Accuracy: 0.76 is better than random forests and boosting, but not lda.  
@@ -82,11 +170,29 @@ testing = concrete[-inTrain,]
 
 Set the seed to 233 and fit a lasso model to predict Compressive Strength. 
 
+```{r q3_fit, cache=TRUE}
+library(elasticnet)
+set.seed(233)
+#head(training)
+fitq3_1 <- train(CompressiveStrength~., data=training, method="lasso")
+#fitq3_1 <- train(CompressiveStrength~., data=training, method="lasso") ##metric="RMSE",method="lasso")
+#predq3_1 <- predict(fitq3_1, newdata = testing)
+```
+
 Which variable is the last coefficient to be set to zero as the penalty increases? (Hint: it may be useful to look up ?plot.enet). 
+
+```{r}
+library(elasticnet)
+fitq3_1
+
+fitq3_1$finalModel
+
+plot(fitq3_1$finalModel, xvar="penalty", use.color=TRUE)
+```
 
 1. Age 
 2. Water 
-3. Cement 
+3. **Cement** 
 4. BlastFurnaceSlag 
 
 
@@ -108,9 +214,31 @@ dat = read.csv(gaf)
 training = dat[year(dat$date) < 2012,]
 testing = dat[(year(dat$date)) > 2011,]
 tstrain = ts(training$visitsTumblr)
+tstest = ts(testing$visitsTumblr)
 ```
 
-Fit a model using the bats() function in the forecast package to the training time series. Then forecast this model for the remaining time points. For how many of the testing points is the true value within the 95% prediction interval bounds? 
+Fit a model using the bats() function in the forecast package to the training time series. Then forecast this model for the remaining time points. 
+
+```{r q4_training, cache=FALSE}
+head(tstrain)
+#plot(decompose(tstrain))
+frequency(tstrain)
+frequency(tstest)
+
+library(forecast)
+fitq4 <- bats(tstrain)
+fc <- forecast(fitq4, fan=TRUE)
+plot(fc, col="green")
+summary(fc)
+fc$lower
+fc$upper
+fc$level
+tstest2 <- tstest
+#tstest2$start <- 366
+#lines(tstest2, col="blue")
+```
+
+For how many of the testing points is the true value within the 95% prediction interval bounds? 
 
 1. 96% 
 2. 95% 
@@ -131,6 +259,11 @@ testing = concrete[-inTrain,]
 ```
 
 Set the seed to 325 and fit a support vector machine using the e1071 package to predict Compressive Strength using the default settings. Predict on the testing set. 
+
+```{r q5_training, cache=FALSE}
+set.seed(325)
+#fitq5_1 <- train(diagnosis~., data=training, method="rf")
+```
 
 What is the RMSE? 
 
