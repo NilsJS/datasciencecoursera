@@ -21,7 +21,7 @@ This function plots distance versus speed, each de-meaned and an associated line
 
 - manipulate(myPlot(s), slider = x(0, 2, step = 0.1))  
 
-- manipulate(myPlot(s), s = slider(0, 2, step = 0.1))  
+- **manipulate(myPlot(s), s = slider(0, 2, step = 0.1))**  
 
 - manipulate(myPlot(s), x.s = slider(0, 2, step = 0.1))  
 
@@ -32,8 +32,14 @@ This function plots distance versus speed, each de-meaned and an associated line
 
 Which of the following code uses the rCharts package to create a sortable and searchable data table for the airquality data set? Assume the rCharts package and the airquality data set have already been loaded into R.
 
+```
+library(rCharts)
+library(datasets)
+head(airquality)
+dTable(airquality, sPaginationType = "full_numbers")
+```
 
-- dTable(airquality, sPaginationType = "full_numbers")  
+- **dTable(airquality, sPaginationType = "full_numbers")**
 
 - d <- data.frame(airquality, stringsAsFactors = FALSE) print(d)  
 
@@ -53,7 +59,7 @@ A basic shiny data product requires:
 
 - A shiny.R file. 
 
-- A ui.R and server.R file or a A server.R file and a directory called www containing the relevant html files. 
+- **A ui.R and server.R file or a A server.R file and a directory called www containing the relevant html files. **
 
 
 # Question 4
@@ -64,7 +70,7 @@ library(shiny)
 shinyUI(pageWithSidebar(
   headerPanel("Data science FTW!"),
   sidebarPanel(
-    h2('Big text')
+    h2('Big text')#  Missing comma here
     h3('Sidebar')
   ),
   mainPanel(
@@ -128,5 +134,5 @@ Why isn't it doing what we want?
 
 - The limits of the slider are set incorrectly and giving an error. 
 
-- The server.R output name isn't the same as the plotOutput command used in ui.R.
+- **The server.R output name isn't the same as the plotOutput command used in ui.R.**
 
