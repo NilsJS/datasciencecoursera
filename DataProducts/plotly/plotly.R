@@ -22,3 +22,4 @@ g
 ## Let's try to get it into plot.ly
 (gg <- ggplotly(g))
 
+gg$

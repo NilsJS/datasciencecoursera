@@ -11,3 +11,13 @@ p <- ggplot(data = d, aes(x = carat, y = price)) +
   geom_smooth(aes(colour = cut, fill = cut)) + facet_wrap(~ cut)
 
 (gg <- ggplotly(p))
+
+
+# Another example
+str(p <- plot_ly(economics, x = date, y = uempmed))
+p %>%
+  add_trace(y = fitted(loess(uempmed ~ as.numeric(date)))) %>%
+  layout(title = "Median duration of unemployment (in weeks)",
+         showlegend = FALSE) %>%
+  dplyr::filter(uempmed == max(uempmed)) %>%
+  layout(annotations = list(x = date, y = uempmed, text = "Peak", showarrow = T))
