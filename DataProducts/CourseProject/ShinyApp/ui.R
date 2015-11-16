@@ -1,24 +1,45 @@
 library(shiny)
 
-# Define UI for application that draws a histogram
-shinyUI(fluidPage(
-  
-  # Application title
-  titlePanel("Hello world!"),
-  
-  # Sidebar with a slider input for the number of bins
-  sidebarLayout(
+# Rely on the 'WorldPhones' dataset in the datasets
+library(googleVis)
+library(datasets)
+
+shinyUI(pageWithSidebar(
+    headerPanel("Example 1: scatter chart"),
     sidebarPanel(
-      sliderInput("bins",
-                  "Number of bins:",
-                  min = 1,
-                  max = 50,
-                  value = 30)
+        selectInput("region", "Choose a region:", 
+                    choices = colnames(WorldPhones))
     ),
-    
-    # Show a plot of the generated distribution
     mainPanel(
-      plotOutput("distPlot")
+        htmlOutput("view")
     )
-  )
 ))
+
+# Define the overall UI
+# shinyUI(
+#     
+#     # Use a fluid Bootstrap layout
+#     fluidPage(    
+#         
+#         # Give the page a title
+#         titlePanel("Telephones by region"),
+#         
+#         # Generate a row with a sidebar
+#         sidebarLayout(      
+#             
+#             # Define the sidebar with one input
+#             sidebarPanel(
+#                 selectInput("region", "Region:", 
+#                             choices=colnames(WorldPhones)),
+#                 hr(),
+#                 helpText("Data from AT&T (1961) The World's Telephones.")
+#             ),
+#             
+#             # Create a spot for the barplot
+#             mainPanel(
+#                 plotOutput("phonePlot")  
+#             )
+#             
+#         )
+#     )
+# )
