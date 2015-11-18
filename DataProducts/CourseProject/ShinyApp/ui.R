@@ -3,6 +3,7 @@ library(shiny)
 # Rely on the 'WorldPhones' dataset in the datasets
 #library(googleVis)
 library(datasets)
+library(ggvis)
 
 # shinyUI(pageWithSidebar(
 #     headerPanel("Example 1: scatter chart"),
@@ -23,7 +24,7 @@ shinyUI(
     fluidPage(    
         
         # Give the page a title
-        titlePanel("Telephones by region and year"),
+        titlePanel("Cellphones by country and year"),
         
         # Generate a row with a sidebar
         sidebarLayout(      
@@ -31,17 +32,19 @@ shinyUI(
             # Define the sidebar with one input
             sidebarPanel(
               # Simple integer interval
-#               sliderInput("Year", "Year:", 
-#                           min=1951, max=1961, value=1958),
-              selectInput("Year", "Year:", 
-                            choices=row.names(WorldPhones)),
+              sliderInput("Year", "Year:", 
+                          min=1980, max=2014, value=1980),
+#               selectInput("Year", "Year:", 
+#                             choices=row.names(WorldPhones)),
                 hr(),
                 helpText("Data from AT&T (1961) The World's Telephones.")
             ),
             
             # Create a spot for the barplot
             mainPanel(
-                plotOutput("phonePlot")  
+              textOutput("debugText"),
+              ggvisOutput("plot1"),
+              plotOutput("phonePlot")  
             )
             
         )
