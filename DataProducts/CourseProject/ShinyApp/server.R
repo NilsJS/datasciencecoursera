@@ -22,16 +22,47 @@ phm <- merge(ph, cc, by.x = "Country.Code", by.y = "ISO.ALPHA.3.Code")
 pop <- read.csv("data/population.csv", header=TRUE)
 
 
-ypop <- select(pop, 
+ypop <- select(subset(pop, !is.na(X1981)), 
                Country.Code = Country.code, 
-               Polulation=X1980)
+               Population = X1981)
+ypop$Population <- as.numeric(gsub(" ", "", ypop$Population, fixed=TRUE)) # Remove whitespace from the numbers
 yphm <- subset(select(phm, 
                       Country.Name = Country.or.Area.Name, 
                       Country.Code=ISO.Numeric.Code.UN.M49.Numerical.Code,
-                      CellPhones = X1980),
+                      CellPhones = X1981),
                !is.na(CellPhones) & CellPhones > 0)
 # Years cellphones by population
 ycpbypop <- inner_join(ypop, yphm, by ="Country.Code")
+
+
+country_tooltip <- function(x) { 
+    if (is.null(x)) return(NULL) 
+    if (is.null(x$Country.Code)) return(NULL) 
+
+    paste0("<b>", x$Country.Code, "</b>") 
+    
+    # Pick out the country with this Code 
+#    country <- ycpbypop[ycpbypop$Country.Code == x$Country.Code, ] 
+    
+#     paste0("<b>", country$Country.Name, "</b><br>", 
+#            "Population: ", country$Population * 1000, "<br>", 
+#            "Cellphones: ", country$Cellphones * country$Population * 10) 
+} 
+
+
+ycpbypop %>% ggvis(~Population, ~CellPhones) %>% 
+    layer_points(size := 50, size.hover := 200, fillOpacity := 0.2, fillOpacity.hover := 0.5, key := ~Country.Code) %>%
+    add_tooltip(country_tooltip, "hover")
+
+#                  stroke = ~has_oscar, key := ~ID) %>% 
+#     add_axis("x", title = xvar_name) %>% 
+#     add_axis("y", title = yvar_name) %>% 
+#     add_legend("stroke", title = "Won Oscar", values = c("Yes", "No")) %>% 
+#     scale_nominal("stroke", domain = c("Yes", "No"), 
+#                   range = c("orange", "#aaa")) %>% 
+#     set_options(width = 500, height = 500) 
+# }) 
+
 
 # Example of inner join
 # Join tables, filtering out those with <10 reviews, and select specified columns 
