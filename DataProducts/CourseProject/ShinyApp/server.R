@@ -22,121 +22,154 @@ phm <- merge(ph, cc, by.x = "Country.Code", by.y = "ISO.ALPHA.3.Code")
 pop <- read.csv("data/population.csv", header=TRUE)
 
 
-ypop <- select(subset(pop, !is.na(X1981)), 
-               Country.Code = Country.code, 
-               Population = X1981)
-ypop$Population <- as.numeric(gsub(" ", "", ypop$Population, fixed=TRUE)) # Remove whitespace from the numbers
-yphm <- subset(select(phm, 
-                      Country.Name = Country.or.Area.Name, 
-                      Country.Code=ISO.Numeric.Code.UN.M49.Numerical.Code,
-                      CellPhones = X1981),
-               !is.na(CellPhones) & CellPhones > 0)
-# Years cellphones by population
-ycpbypop <- inner_join(ypop, yphm, by ="Country.Code")
-
-
-country_tooltip <- function(x) { 
-    if (is.null(x)) return(NULL) 
-    if (is.null(x$Country.Code)) return(NULL) 
-
-    paste0("<b>", x$Country.Code, "</b>") 
-    
-    # Pick out the country with this Code 
-#    country <- ycpbypop[ycpbypop$Country.Code == x$Country.Code, ] 
-    
-#     paste0("<b>", country$Country.Name, "</b><br>", 
-#            "Population: ", country$Population * 1000, "<br>", 
-#            "Cellphones: ", country$Cellphones * country$Population * 10) 
-} 
-
-
-ycpbypop %>% ggvis(~Population, ~CellPhones) %>% 
-    layer_points(size := 50, size.hover := 200, fillOpacity := 0.2, fillOpacity.hover := 0.5, key := ~Country.Code) %>%
-    add_tooltip(country_tooltip, "hover")
-
-#                  stroke = ~has_oscar, key := ~ID) %>% 
-#     add_axis("x", title = xvar_name) %>% 
-#     add_axis("y", title = yvar_name) %>% 
-#     add_legend("stroke", title = "Won Oscar", values = c("Yes", "No")) %>% 
-#     scale_nominal("stroke", domain = c("Yes", "No"), 
-#                   range = c("orange", "#aaa")) %>% 
-#     set_options(width = 500, height = 500) 
-# }) 
-
-
-# Example of inner join
-# Join tables, filtering out those with <10 reviews, and select specified columns 
-#  all_movies <- inner_join(omdb, tomatoes, by = "ID") %>% 
-#      filter(Reviews >= 10) %>% 
-#      select(ID, imdbID, Title, Year, Rating_m = Rating.x, Runtime, Genre, Released, 
-#                    Director, Writer, imdbRating, imdbVotes, Language, Country, Oscars, 
-#                    Rating = Rating.y, Meter, Reviews, Fresh, Rotten, userMeter, userRating, userReviews, 
-#                    BoxOffice, Production) 
-
-
 # Define a server for the Shiny app
 shinyServer(function(input, output) {
-#  output$phonePlot <- reactive({input$Years})
-  variables <- reactiveValues(year = 0)
-  inputYear <-reactive({
-      variables$year <- paste('x', input$Year) 
-  })
-  datasetInput <- reactive({
-#    year <- paste('x', input$Year) 
-    select(subset(phm, !is.na(year), c('Country.or.Area.Name', year)))
-  #                       main=input$region,
-  #                       ylab="Number of Telephones",
-  #                       xlab="Year"
-  })
-                
-  output$debugText <- renderText(paste("Year: ", inputYear()))
-  
-  # Function for generating tooltip text 
-  country_tooltip <- function(x) { 
-     if (is.null(x)) return(NULL) 
-     if (is.null(x$ID)) return(NULL) 
-  
-     # Pick out the country with this ID 
-     all_movies <- isolate(movies()) 
-     movie <- all_movies[all_movies$ID == x$ID, ] 
-  
-     paste0("<b>", movie$Title, "</b><br>", 
-                     movie$Year, "<br>", 
-                     "$", format(movie$BoxOffice, big.mark = ",", scientific = FALSE) 
-                   ) 
-   } 
 
-  
+    variables <- reactiveValues(year = 0)
+    inputYear <-reactive({
+#        variables$year <- input$Year
+        variables$year <- paste(input$PoplationRange, collapse=' ')
+    })
+    output$debugText <- renderText(paste("Year: ", inputYear()))
+    
+    countries <- reactive({
+      year <- paste('X', input$Year, sep="") 
+      lowPopRange <- input$PoplationRange[0] * 1000
+      highPopRange <- input$PoplationRange[1] * 1000
+      popidx <- match(year, names(pop))
+      ypop <- select(pop, Country.Code = Country.code, popidx)
+#      output$debugText <- renderText(names(ypop))
+      names(ypop)[2] <- c("Population")
+      ypop <- subset(ypop, 
+                     !is.na(Population))# & 
+#                        Population >= lowPopRange &
+#                        Population <= highPopRange)
+      # Remove whitespace from the numbers
+      ypop$Population <- as.numeric(gsub(" ", "", ypop$Population, fixed=TRUE)) 
+      phmidx <- match(year, names(phm))
+      yphm <- select(phm, 
+                     Country.Name = Country.or.Area.Name, 
+                     Country.Code=ISO.Numeric.Code.UN.M49.Numerical.Code,
+                     phmidx)
+      names(yphm)[3] <- "CellPhones"
+      yphm <- subset(yphm, !is.na(CellPhones) & CellPhones > 0)
+      # Years cellphones by population
+      ycpbypop <- inner_join(ypop, yphm, by ="Country.Code")
+      ycpbypop
+    })
+
+  country_tooltip <- function(x) { 
+    if (is.null(x)) return(NULL) 
+    if (is.null(x$Country.Code)) return(NULL) 
+    
+    # Pick out the country with this Code 
+    countries <- isolate(countries())
+    country <- countries[countries$Country.Code == x$Country.Code, ] 
+    paste0("<b>", country$Country.Name, "</b><br>", 
+           "Population: ", country$Population * 1000, "<br>", 
+           "Cellphones: ", round(country$CellPhones * country$Population * 10, 0)) 
+  } 
   
   # A reactive expression with the ggvis plot 
   vis <- reactive({ 
-     # Lables for axes 
-     xvar_name <- names(axis_vars)[axis_vars == input$xvar] 
-     yvar_name <- names(axis_vars)[axis_vars == input$yvar] 
-    
-     # Normally we could do something like props(x = ~BoxOffice, y = ~Reviews), 
-     # but since the inputs are strings, we need to do a little more work. 
-     xvar <- prop("x", as.symbol(input$xvar)) 
-     yvar <- prop("y", as.symbol(input$yvar)) 
-     
-    
-     movies %>% 
-         ggvis(x = xvar, y = yvar) %>% 
-         layer_points(size := 50, size.hover := 200, 
-                                 fillOpacity := 0.2, fillOpacity.hover := 0.5, 
-                                 stroke = ~has_oscar, key := ~ID) %>% 
-         add_tooltip(movie_tooltip, "hover") %>% 
-         add_axis("x", title = xvar_name) %>% 
-         add_axis("y", title = yvar_name) %>% 
-         add_legend("stroke", title = "Won Oscar", values = c("Yes", "No")) %>% 
-         scale_nominal("stroke", domain = c("Yes", "No"), 
-                                 range = c("orange", "#aaa")) %>% 
-         set_options(width = 500, height = 500) 
-   }) 
-  
+    countries %>% ggvis(~Population, ~CellPhones) %>% 
+      layer_points(size := 50, size.hover := 200, fillOpacity := 0.2, fillOpacity.hover := 0.5, key := ~Country.Code) %>%
+      add_tooltip(country_tooltip, "hover") %>%
+      add_axis("x", title = "Population x 1000") %>% 
+      add_axis("y", title = "Cellphones per 100 people") %>% 
+      set_options(width = 500, height = 500) 
+  }) 
   
   vis %>% bind_shiny("plot1") 
+})
+
+#     # Lables for axes 
+#     xvar_name <- names(axis_vars)[axis_vars == input$xvar] 
+#     yvar_name <- names(axis_vars)[axis_vars == input$yvar] 
+#     
+#     # Normally we could do something like props(x = ~BoxOffice, y = ~Reviews), 
+#     # but since the inputs are strings, we need to do a little more work. 
+#     xvar <- prop("x", as.symbol(input$xvar)) 
+#     yvar <- prop("y", as.symbol(input$yvar)) 
+#     
+#     
+#     movies %>% 
+#       ggvis(x = xvar, y = yvar) %>% 
+#       layer_points(size := 50, size.hover := 200, 
+#                    fillOpacity := 0.2, fillOpacity.hover := 0.5, 
+#                    stroke = ~has_oscar, key := ~ID) %>% 
+#       add_tooltip(movie_tooltip, "hover") %>% 
+#       add_axis("x", title = xvar_name) %>% 
+#       add_axis("y", title = yvar_name) %>% 
+#       add_legend("stroke", title = "Won Oscar", values = c("Yes", "No")) %>% 
+#       scale_nominal("stroke", domain = c("Yes", "No"), 
+#                     range = c("orange", "#aaa")) %>% 
+#       set_options(width = 500, height = 500) 
+
+  #   ycpbypop %>% ggvis(~Population, ~CellPhones) %>% 
+  #     layer_points(size := 50, size.hover := 200, fillOpacity := 0.2, fillOpacity.hover := 0.5, key := ~Country.Code) %>%
+  #     add_tooltip(country_tooltip, "hover")
   
+  #   # Function for generating tooltip text 
+#   country_tooltip <- function(x) { 
+#     if (is.null(x)) return(NULL) 
+#     if (is.null(x$ID)) return(NULL) 
+#     
+#     # Pick out the country with this ID 
+#     all_movies <- isolate(movies()) 
+#     movie <- all_movies[all_movies$ID == x$ID, ] 
+#     
+#     paste0("<b>", movie$Title, "</b><br>", 
+#            movie$Year, "<br>", 
+#            "$", format(movie$BoxOffice, big.mark = ",", scientific = FALSE) 
+#     ) 
+#   } 
+ 
+#   # A reactive expression with the ggvis plot 
+#   vis <- reactive({ 
+# 
+#     
+#     
+#     # Lables for axes 
+#     xvar_name <- names(axis_vars)[axis_vars == input$xvar] 
+#     yvar_name <- names(axis_vars)[axis_vars == input$yvar] 
+#     
+#     # Normally we could do something like props(x = ~BoxOffice, y = ~Reviews), 
+#     # but since the inputs are strings, we need to do a little more work. 
+#     xvar <- prop("x", as.symbol(input$xvar)) 
+#     yvar <- prop("y", as.symbol(input$yvar)) 
+#     
+#     
+#     movies %>% 
+#       ggvis(x = xvar, y = yvar) %>% 
+#       layer_points(size := 50, size.hover := 200, 
+#                    fillOpacity := 0.2, fillOpacity.hover := 0.5, 
+#                    stroke = ~has_oscar, key := ~ID) %>% 
+#       add_tooltip(movie_tooltip, "hover") %>% 
+#       add_axis("x", title = xvar_name) %>% 
+#       add_axis("y", title = yvar_name) %>% 
+#       add_legend("stroke", title = "Won Oscar", values = c("Yes", "No")) %>% 
+#       scale_nominal("stroke", domain = c("Yes", "No"), 
+#                     range = c("orange", "#aaa")) %>% 
+#       set_options(width = 500, height = 500) 
+#   }) 
+  
+  
+#   vis %>% bind_shiny("plot1") 
+
+  #  output$phonePlot <- reactive({input$Years})
+#   variables <- reactiveValues(year = 0)
+#   inputYear <-reactive({
+#       variables$year <- paste('x', input$Year) 
+#   })
+#   datasetInput <- reactive({
+# #    year <- paste('x', input$Year) 
+#     select(subset(phm, !is.na(year), c('Country.or.Area.Name', year)))
+#   #                       main=input$region,
+#   #                       ylab="Number of Telephones",
+#   #                       xlab="Year"
+#   })
+                
   
 #     output$phonePlot <- renderPlot({
 #     barplot(datasetInput(), 
@@ -150,7 +183,6 @@ shinyServer(function(input, output) {
 #               ylab="Number of Cellphones",
 #               xlab="Year")
 #     })
-})
 # library(googleVis)
 # library(datasets)
 # library(dplyr)
@@ -185,4 +217,53 @@ shinyServer(function(input, output) {
 # })
 
 
+
+
+# ypop <- select(subset(pop, !is.na(X1981)), 
+#                Country.Code = Country.code, 
+#                Population = X1981)
+# ypop$Population <- as.numeric(gsub(" ", "", ypop$Population, fixed=TRUE)) # Remove whitespace from the numbers
+# yphm <- subset(select(phm, 
+#                       Country.Name = Country.or.Area.Name, 
+#                       Country.Code=ISO.Numeric.Code.UN.M49.Numerical.Code,
+#                       CellPhones = X1981),
+#                !is.na(CellPhones) & CellPhones > 0)
+# # Years cellphones by population
+# ycpbypop <- inner_join(ypop, yphm, by ="Country.Code")
+# 
+# 
+# country_tooltip <- function(x) { 
+#   if (is.null(x)) return(NULL) 
+#   if (is.null(x$Country.Code)) return(NULL) 
+# 
+#   # Pick out the country with this Code 
+#   country <- ycpbypop[ycpbypop$Country.Code == x$Country.Code, ] 
+#   paste0("<b>", country$Country.Name, "</b><br>", 
+#          "Population: ", country$Population * 1000, "<br>", 
+#          "Cellphones: ", round(country$CellPhones * country$Population * 10, 0)) 
+# } 
+# 
+# 
+# ycpbypop %>% ggvis(~Population, ~CellPhones) %>% 
+#     layer_points(size := 50, size.hover := 200, fillOpacity := 0.2, fillOpacity.hover := 0.5, key := ~Country.Code) %>%
+#     add_tooltip(country_tooltip, "hover")
+
+#                  stroke = ~has_oscar, key := ~ID) %>% 
+#     add_axis("x", title = xvar_name) %>% 
+#     add_axis("y", title = yvar_name) %>% 
+#     add_legend("stroke", title = "Won Oscar", values = c("Yes", "No")) %>% 
+#     scale_nominal("stroke", domain = c("Yes", "No"), 
+#                   range = c("orange", "#aaa")) %>% 
+#     set_options(width = 500, height = 500) 
+# }) 
+
+
+# Example of inner join
+# Join tables, filtering out those with <10 reviews, and select specified columns 
+#  all_movies <- inner_join(omdb, tomatoes, by = "ID") %>% 
+#      filter(Reviews >= 10) %>% 
+#      select(ID, imdbID, Title, Year, Rating_m = Rating.x, Runtime, Genre, Released, 
+#                    Director, Writer, imdbRating, imdbVotes, Language, Country, Oscars, 
+#                    Rating = Rating.y, Meter, Reviews, Fresh, Rotten, userMeter, userRating, userReviews, 
+#                    BoxOffice, Production) 
 

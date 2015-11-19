@@ -33,18 +33,17 @@ shinyUI(
             sidebarPanel(
               # Simple integer interval
               sliderInput("Year", "Year:", 
-                          min=1980, max=2014, value=1980),
-#               selectInput("Year", "Year:", 
-#                             choices=row.names(WorldPhones)),
+                          min=1980, max=2014, value=1980, sep=""),   
+              sliderInput("PoplationRange", "Population range (x1M):",
+                          min = 0, max = 1500, value = c(000,1500)),
                 hr(),
-                helpText("Data from AT&T (1961) The World's Telephones.")
+                helpText("Data from worldbank.org (IT.CELL.SETS) & UN (Population both sexes).")
             ),
             
             # Create a spot for the barplot
             mainPanel(
               textOutput("debugText"),
-              ggvisOutput("plot1"),
-              plotOutput("phonePlot")  
+              ggvisOutput("plot1")
             )
             
         )
