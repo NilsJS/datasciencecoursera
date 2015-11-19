@@ -32,7 +32,8 @@ shinyUI(
               sliderInput("PoplationRange", "Population range (x1M):",
                           min = 0, max = 1500, value = c(000,1500)),
               selectInput("FollowCountry", "Country to highlight (red):",
-                          choices = c("Norway", "Sweden", "Denmark", "China", "India")),
+                          choices = as.character(cc$Country.or.Area.Name),
+                          selected = "Norway"),
               hr(),
               helpText("Data from worldbank.org (IT.CELL.SETS) & UN (Population both sexes).")
             ),
@@ -40,7 +41,11 @@ shinyUI(
             # Create a spot for the barplot
             mainPanel(
               textOutput("debugText"),
-              ggvisOutput("plot1")
+              ggvisOutput("plot1"),
+              p("Use the Year slider in the left panel to indicate the year to display (or simply press the animation button)."),
+              p("The Population range slider allows you to focus on countries of a certain population level."),
+              p("Selecting a country to highlight will mark the relevant country with a red dot if found in the set for the given year."),
+              p("A mouse-over tooltip will provide information on total population and total number of cellphones for each country.")
             )
             
         )
