@@ -106,15 +106,15 @@ testing = adData[-inTrain,]
 ```
 
 Set the seed to 62433 and predict diagnosis with all the other variables using 
-* random forest ("rf")
-* boosted trees ("gbm") 
-* linear discriminant analysis ("lda") model. 
+- random forest ("rf")
+- boosted trees ("gbm") 
+- linear discriminant analysis ("lda")
 
-```{r q2_training, warning=FALSE, cache=TRUE, message=FALSE}
+```{r q2_training, cache=FALSE}
 set.seed(62433)
-fitq2_1 <- train(diagnosis~., data=training, method="rf")
-fitq2_2 <- train(diagnosis~., data=training, method="gbm", verbose = FALSE)
-fitq2_3 <- train(diagnosis~., data=training, method="lda")
+fitq2_1 <- train(diagnosis~., data=training, method="rf", verbose = FALSE)#, na.action=na.omit)
+fitq2_2 <- train(diagnosis~., data=training, method="gbm", verbose = FALSE)#, na.action=na.omit)
+fitq2_3 <- train(diagnosis~., data=training, method="lda", verbose = FALSE)#, na.action=na.omit)
 
 predq2_1 <- predict(fitq2_1, newdata = testing)
 predq2_2 <- predict(fitq2_2, newdata = testing)
@@ -123,8 +123,10 @@ predq2_3 <- predict(fitq2_3, newdata = testing)
 
 Stack the predictions together using random forests ("rf"). 
 
-```{r q2_stacking, cache=TRUE}
+```{r q2_stacking, cache=FALSE}
+# Stack the predictions together using random forest
 predDF <- data.frame(predq2_1, predq2_2, predq2_3, diagnosis=testing$diagnosis)
+head(predDF)
 fitq2_4 <- train(diagnosis~., method="rf", data=predDF)
 predq2_4 <- predict(fitq2_4, newdata = predDF)
 ```
@@ -141,8 +143,6 @@ cmq2_1 <- confusionMatrix(predq2_1, testing$diagnosis)
 cmq2_2 <- confusionMatrix(predq2_2, testing$diagnosis)
 cmq2_3 <- confusionMatrix(predq2_3, testing$diagnosis)
 cmq2_4 <- confusionMatrix(predq2_4, testing$diagnosis)
-
-
 ```
 
 - Accuracy for model fitq2_1 (rf):  **`r cmq2_1$overall[1]`**
@@ -151,9 +151,10 @@ cmq2_4 <- confusionMatrix(predq2_4, testing$diagnosis)
 - Accuracy for model fitq2_4 (stacked):  **`r cmq2_4$overall[1]`**
 
 
-1. **Stacked Accuracy: 0.88 is better than all three other methods **
+
+1. Stacked Accuracy: 0.88 is better than all three other methods
 2. Stacked Accuracy: 0.93 is better than all three other methods 
-3. Stacked Accuracy: 0.80 is better than random forests and lda and the same as boosting.  
+3. **Stacked Accuracy: 0.80 is better than random forests and lda and the same as boosting.**
 4. Stacked Accuracy: 0.76 is better than random forests and boosting, but not lda.  
 
 # Question 3
@@ -227,20 +228,34 @@ frequency(tstest)
 
 library(forecast)
 fitq4 <- bats(tstrain)
-fc <- forecast(fitq4, fan=TRUE)
+plot(fitq4)
+fc <- forecast(fitq4, level=95, h=nrow(testing))
 plot(fc, col="green")
-summary(fc)
-fc$lower
-fc$upper
-fc$level
-tstest2 <- tstest
-#tstest2$start <- 366
-#lines(tstest2, col="blue")
+#lines(tstest, col="red")
+lines(ts(testing$visitsTumblr, start=nrow(training)), col="red")
+# 
+# fc
+# class(fc)
+# summary(fc)
+#fc$mean
+#fc$lower
+#fc$upper
+
+
+fail <- 0
+total <- length(testing$visitsTumblr)
+for(i in 1:length(testing$visitsTumblr)) {
+     if (testing$visitsTumblr[i] < fc$lower[i] ||  testing$visitsTumblr[i] > fc$upper[i]) {
+         fail <- fail + 1
+     }
+}
+# Percentage of true values witin predicted 95% range
+percent((total-fail)/total)
 ```
 
 For how many of the testing points is the true value within the 95% prediction interval bounds? 
 
-1. 96% 
+1. **96%** 
 2. 95% 
 3. 93% 
 4. 94% 
@@ -261,8 +276,19 @@ testing = concrete[-inTrain,]
 Set the seed to 325 and fit a support vector machine using the e1071 package to predict Compressive Strength using the default settings. Predict on the testing set. 
 
 ```{r q5_training, cache=FALSE}
+head(training)
+library(e1071)
 set.seed(325)
-#fitq5_1 <- train(diagnosis~., data=training, method="rf")
+fitq5 <- svm(CompressiveStrength~., data=training)
+summary(fitq5)
+
+pq5 <- predict(fitq5, newdata=testing)
+summary(pq5)
+
+RMSE <- sqrt(mean((testing$CompressiveStrength-pq5)^2))
+
+# RMSE
+round(RMSE, 2)
 ```
 
 What is the RMSE? 
@@ -270,5 +296,5 @@ What is the RMSE?
 1. 11543.39 
 2. 35.59 
 3. 107.44 
-4. 6.72
+4. **6.72**
 

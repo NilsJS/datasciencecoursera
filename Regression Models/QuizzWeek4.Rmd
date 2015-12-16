@@ -144,7 +144,7 @@ In our case $e^{\beta_1}$ = $e^{`r xb`}$ = **`r exp(summary(m)$coef[2,1])`**
 
 #### Alternatives
 * *0.136* : WRONG 
-* 0.9457 
+* **0.9457** 
 * 0.321 
 * *-0.056* : WRONG
 
@@ -175,10 +175,10 @@ m1$coef[2] * 10
 
 
 #### Alternatives
-* The coefficient estimate is unchanged 
+* **The coefficient estimate is unchanged**
 * *The coefficient is subtracted by log(10).* = WRONG
 * *The coefficient estimate is multiplied by 10* = WRONG
-* **The coefficient estimate is divided by 10.** 
+* The coefficient estimate is divided by 10. = WRONG
 
 
 # Question 6
