@@ -1,16 +1,9 @@
 library(tm)
 library(stringr)
+library(SnowballC)
+library(tau)
 
-#source.dir <- "./Coursera-SwiftKey/final/en_US/"
-source.dir <- "./extracts"
 
-print(str_c("Reading corpus from directory: ", source.dir))
-docs <- Corpus(DirSource(directory = source.dir, pattern = ".txt"),
-               readerControl = list(reader = readPlain,
-                                    language = "en-us",
-                                    load = TRUE))
-
-print("Reading profanity dictionary")
 readFileLines = function(file.name, num.lines = -1) {
   lines <-vector()
   con <- file(file.name, "r") 
@@ -24,14 +17,32 @@ readFileLines = function(file.name, num.lines = -1) {
   close(con)
   return(lines)
 }
-profanities <- readFileLines("./lib/profanities2.txt")
 
-print("Running transformations on corpus")
-docs <- tm_map(docs, FUN = removeWords, profanities)
-docs <- tm_map(docs, FUN = removePunctuation)
-docs <- tm_map(docs, FUN = stripWhitespace)
+applyTransformations <- function(corpus, language = "english") {
+  file.name <- str_c("./lib/profanities_",language,".txt")
+  profanities <- readFileLines(file.name)
+  print(str_c("Running transformations on ", language, " corpus"))
+  corpus <- tm_map(corpus, FUN = removeWords, profanities)
+  corpus <- tm_map(corpus, FUN = removeWords, stopwords("english"))
+  corpus <- tm_map(corpus, FUN = removePunctuation)
+  corpus <- tm_map(corpus, FUN = stemDocument)
+  corpus <- tm_map(corpus, FUN = stripWhitespace)
+  corpus <- tm_map(corpus, FUN = content_transformer(tolower))
+  #corpus <- tm_map(corpus, FUN = tolower)
+  return(corpus)
+}
 
-#docs <- tm_map(docs, FUN = tolower)
+#source.dir <- "./Coursera-SwiftKey/final/en_US/"
+source.dir <- "./extracts"
 
-print(docs)
+print(str_c("Reading corpus from directory: ", source.dir))
+en_docs <- Corpus(DirSource(directory = source.dir, pattern = ".txt"),
+                  readerControl = list(reader = readPlain,
+                                       language = "english",
+                                       load = TRUE))
+en_docs <- applyTransformations(en_docs)
+
+# Consider looking up synonyms
+
+print(en_docs)
 
