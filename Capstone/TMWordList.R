@@ -5,6 +5,7 @@ library(tau)
 
 
 readFileLines = function(file.name, num.lines = -1) {
+  print(str_c("Reading file: ", file.name))
   lines <-vector()
   con <- file(file.name, "r") 
   ln <- 0
@@ -18,31 +19,34 @@ readFileLines = function(file.name, num.lines = -1) {
   return(lines)
 }
 
-applyTransformations <- function(corpus, language = "english") {
-  file.name <- str_c("./lib/profanities_",language,".txt")
-  profanities <- readFileLines(file.name)
-  print(str_c("Running transformations on ", language, " corpus"))
-  corpus <- tm_map(corpus, FUN = removeWords, profanities)
-  corpus <- tm_map(corpus, FUN = removeWords, stopwords("english"))
-  corpus <- tm_map(corpus, FUN = removePunctuation)
-  corpus <- tm_map(corpus, FUN = stemDocument)
-  corpus <- tm_map(corpus, FUN = stripWhitespace)
-  corpus <- tm_map(corpus, FUN = content_transformer(tolower))
-  #corpus <- tm_map(corpus, FUN = tolower)
-  return(corpus)
+readCorpus <- function(dir, language = "english") {
+  print(str_c("Reading corpus from directory: ", source.dir))
+  return(Corpus(DirSource(directory = source.dir, pattern = ".txt"),
+                readerControl = list(reader = readPlain,
+                                     language = language,
+                                     load = TRUE)))
 }
 
-#source.dir <- "./Coursera-SwiftKey/final/en_US/"
-source.dir <- "./extracts"
+applyTransformations <- function(corpus, language = "english") {
+  profanity.file.name <- str_c("./lib/profanities_",language,".txt")
+  profanities <- readFileLines(profanity.file.name)
 
-print(str_c("Reading corpus from directory: ", source.dir))
-en_docs <- Corpus(DirSource(directory = source.dir, pattern = ".txt"),
-                  readerControl = list(reader = readPlain,
-                                       language = "english",
-                                       load = TRUE))
-en_docs <- applyTransformations(en_docs)
+  print(str_c("Applying transformations on '", language, "' corpus"))
+  return(tm_map(tm_map(tm_map(tm_map(tm_map(
+         corpus, 
+         FUN = removeWords, stopwords(language)), 
+         FUN = removeWords, profanities),
+         FUN = stemDocument),
+         FUN = removeNumbers),
+         FUN = content_transformer(tolower)))
+#  FUN = removePunctuation)
+#  FUN = stripWhitespace)
+}
 
-# Consider looking up synonyms
+getTermMatrix <- function(corpus) {
+  return(TermDocumentMatrix(corpus))
+}
 
-print(en_docs)
-
+getTermFreq <- function(term.matrix, low.freq = 0, high.freq = Inf) {
+  return(findFreqTerms(term.matrix, lowfreq = low.freq, highfreq = high.freq))
+}
