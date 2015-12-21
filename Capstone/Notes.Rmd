@@ -81,7 +81,7 @@ docs.en <- applyTransformations(corpus = readCorpus(source.dir, language),
                                 language = language)
 ```
 
-Size of corpus: `r 
+Size of corpus: **TODO**
 
 ## 2.1. Exploratory analysis 
 
@@ -100,11 +100,12 @@ docs.en.words100 <- findFreqTerms(docs.en.tdm, 100)
 ```
 
 ```{r}
+# df <- as.data.frame(inspect(docs.en.tdm[docs.en.words100, 1:3]))
+# df$total <- df[1] + df[2] + df[3]
+#arrange(df, desc(total))
+
 inspect(docs.en.tdm[docs.en.words100, 1:3])
 
-#docs.en.term.freq1000
-
-#Data(docs.en.term.matrix)[1:10, docs.en.term.freq]
 ```
 
 
@@ -165,4 +166,34 @@ inspect(docs.en.tdm[docs.en.words100, 1:3])
 
 - Build a model to handle cases where a particular n-gram isn't observed. 
 
+
+# Task 4: Prediction
+
+The goal of this exercise is to build and evaluate your first predictive model. You will use the n-gram and backoff models you built in previous tasks to build and evaluate your predictive model. The goal is to make the model efficient and accurate. 
+
+**Tasks to accomplish**
+
+1.	Build a predictive model based on the previous data modeling steps - you may combine the models in any way you think is appropriate. 
+
+2.	Evaluate the model for efficiency and accuracy - use timing software to evaluate the computational complexity of your model. Evaluate the model accuracy using different metrics like perplexity, accuracy at the first word, second word, and third word. 
+
+**Questions to consider**
+
+1.	How does the model perform for different choices of the parameters and size of the model? 
+
+2.	How much does the model slow down for the performance you gain?
+
+3.	Does perplexity correlate with the other measures of accuracy?
+
+4.	Can you reduce the size of the model (number of parameters) without reducing performance? 
+
+**Tips and hints**
+
+1.	How does the model that just predicts the most frequent words work in terms of accuracy?
+
+2.	How much improvement do you get by using just the previous word to predict the next? 
+
+3.	Consider building the models on smaller samples to check how they perform before scaling up to the whole data set. 
+
+4.	When you fit a predictive model at this step, check the size of the object using the object.size() function, try to build models that have the smallest size possible while retaining accuracy. 
 
