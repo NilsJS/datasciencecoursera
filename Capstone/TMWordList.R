@@ -58,7 +58,8 @@ BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
 
 getBigramTDM <- function(corpus) {
   # get all 1-gram and 2-gram word counts
-  return(TermDocumentMatrix(corpus, control = list(tokenize = BigramTokenizer)))
+  return(TermDocumentMatrix(corpus, control = list(tokenize = BigramTokenizer, 
+                                                   stopwords = TRUE)))
 }
 
 TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))

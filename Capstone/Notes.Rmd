@@ -82,7 +82,7 @@ docs.en.sample[[1]]$content
 
 # Task 2: Exploratory Analysis
 
-```{r Reading full Engligh Corpus, cache=T}
+```{r Reading full Engligh Corpus, cache=F}
 # Read full English corpus
 source.dir <- "./Coursera-SwiftKey/extract/en_US/"
 language <- "english"
@@ -103,9 +103,20 @@ summary(docs.en)
 ```{r Create Term Doc Matrix, cache=TRUE }
 # Get Term Doc Matrix 
 docs.en.tdm <- TermDocumentMatrix(docs.en, control=list(stopwords = TRUE))
-# Get words that occur at least 100 times in each doc
-f100 <- findFreqTerms(docs.en.tdm, 100)
-inspect(docs.en.tdm[f100, 1:3])
+# Count word frequency
+ft <- findFreqTerms(docs.en.tdm, lowfreq=1)
+#inspect(docs.en.tdm[f100, 1:3])
+
+ft.dt <- convertTDMtoDataTable(docs.en.tdm[ft, 1:3])
+ft.dt$total <- ft.dt[, 2, with=F] + ft.dt[, 3, with=F] + ft.dt[, 4, with=F]
+#ft100 <- subset(ft.dt, total >= 100)
+ft.dt.top100 <- head(arrange(ft.dt, desc(total)), 100)
+```
+
+```{r echo=FALSE}
+panderOptions('table.split.table', Inf) 
+pander(head(arrange(ft.dt, desc(total)), 10),
+       caption="Top 10 most frequent words")
 ```
 
 
@@ -113,15 +124,25 @@ inspect(docs.en.tdm[f100, 1:3])
 
 - build figures and tables to understand variation in the frequencies of words and word pairs in the data. 
 
-```{r Create Bigram Matrix, cache=TRUE }
+```{r Create Bigram Matrix, cache=F }
 # Get Bigram Term Doc Matrix 
 bigram.tdm <- getBigramTDM(docs.en)
 
 bigram.dt <- convertTDMtoDataTable(bigram.tdm)
+bigram.dt$total <- bigram.dt[, 2, with=F] + bigram.dt[, 3, with=F] + bigram.dt[, 4, with=F]
+```
 
-# Get words that occur at least 100 times in each doc
-#f100 <- findFreqTerms(docs.en.tdm, 100)
-#inspect(docs.en.tdm[f100, 1:3])
+```{r Create Trigram Matrix, cache=F }
+# Get Trigram Term Doc Matrix 
+trigram.tdm <- getTrigramTDM(docs.en)
+
+trigram.dt <- convertTDMtoDataTable(trigram.tdm)
+trigram.dt$total <- 
+  trigram.dt[, 2, with=F] + 
+  trigram.dt[, 3, with=F] + 
+  trigram.dt[, 4, with=F]
+tri4 <- subset(trigram.dt, total > 3)
+arrange(tri4, desc(total))
 ```
 
 
@@ -129,9 +150,41 @@ bigram.dt <- convertTDMtoDataTable(bigram.tdm)
 
 1. Some words are more frequent than others - what are the distributions of word frequencies? 
 
+```{r echo=FALSE}
+hist(ft.dt$total)
+```
+
+Most words only show up a few times, and most of those only once:
+```{r echo=FALSE}
+hist(subset(ft.dt, total < 10)$total)
+```
+
+... but some words are very frequent
+```{r echo=FALSE}
+hist(subset(ft.dt, total >= 10)$total)
+```
+
+
 2. What are the frequencies of 2-grams and 3-grams in the dataset? 
 
+```{r echo=FALSE}
+panderOptions('table.split.table', Inf) 
+pander(head(arrange(bigram.dt, desc(total)), 10),
+       caption="Top 10 most frequent bi-grams")
+```
+
+```{r echo=FALSE}
+panderOptions('table.split.table', Inf) 
+pander(head(arrange(trigram.dt, desc(total)), 10),
+       caption="Top 10 most frequent tri-grams")
+```
+
 3. How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%? 
+
+According to wikipedia, the (corpus of the english language)[https://en.wikipedia.org/wiki/Most_common_words_in_English] has more than **a billion words**.  
+
+Our dictionary has `r length(ft)` distinct words, based on a corpus of `r sum(ft.dt$total)` words in total (the complete text).  The top 100 words covers `r `
+
 
 4. How do you evaluate how many of the words come from foreign languages? 
 
