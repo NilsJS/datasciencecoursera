@@ -17,6 +17,15 @@ suppressWarnings(library(scales, quietly=TRUE))
 suppressWarnings(library(pander, quietly=TRUE))
 library(ggplot2)
 suppressWarnings(library(gridExtra, quietly=TRUE, warn.conflict=FALSE))
+
+
+library(tm)
+library(stringr)
+library(SnowballC)
+library(tau)
+library(class)
+library(data.table)
+library(RWeka)
 ```
 
 ```{r load source code, message=FALSE, warning=FALSE}
@@ -85,8 +94,6 @@ docs.en <- applyTransformations(corpus = readCorpus(source.dir, language),
 summary(docs.en)
 ```
 
-Size of corpus: **TODO**
-
 ## 2.1. Exploratory analysis 
 
 - perform a thorough exploratory analysis of the data, understanding the distribution of words and relationship between the words in the corpora. 
@@ -97,8 +104,8 @@ Size of corpus: **TODO**
 # Get Term Doc Matrix 
 docs.en.tdm <- TermDocumentMatrix(docs.en, control=list(stopwords = TRUE))
 # Get words that occur at least 100 times in each doc
-docs.en.words100 <- findFreqTerms(docs.en.tdm, 100)
-inspect(docs.en.tdm[docs.en.words100, 1:3])
+f100 <- findFreqTerms(docs.en.tdm, 100)
+inspect(docs.en.tdm[f100, 1:3])
 ```
 
 
@@ -106,6 +113,16 @@ inspect(docs.en.tdm[docs.en.words100, 1:3])
 
 - build figures and tables to understand variation in the frequencies of words and word pairs in the data. 
 
+```{r Create Bigram Matrix, cache=TRUE }
+# Get Bigram Term Doc Matrix 
+bigram.tdm <- getBigramTDM(docs.en)
+
+bigram.dt <- convertTDMtoDataTable(bigram.tdm)
+
+# Get words that occur at least 100 times in each doc
+#f100 <- findFreqTerms(docs.en.tdm, 100)
+#inspect(docs.en.tdm[f100, 1:3])
+```
 
 
 **Questions to consider:**

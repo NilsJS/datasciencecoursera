@@ -1,8 +1,10 @@
-library(tm)
-library(stringr)
-library(SnowballC)
-library(tau)
-
+require(tm)
+require(stringr)
+require(SnowballC)
+require(tau)
+require(class)
+require(data.table)
+require(RWeka)
 
 readFileLines = function(file.name, num.lines = -1) {
   print(str_c("Reading file: ", file.name))
@@ -32,15 +34,16 @@ applyTransformations <- function(corpus, language = "english") {
   profanities <- readFileLines(profanity.file.name)
 
   print(str_c("Applying transformations on '", language, "' corpus"))
-  return(tm_map(tm_map(tm_map(tm_map(tm_map(
+  return(tm_map(tm_map(tm_map(tm_map(tm_map(tm_map(tm_map(
          corpus, 
          FUN = removeWords, stopwords(language)), 
          FUN = removeWords, profanities),
          FUN = stemDocument),
          FUN = removeNumbers),
+         FUN = stripWhitespace),
+         FUN = removePunctuation),
          FUN = content_transformer(tolower)))
 #  FUN = removePunctuation)
-#  FUN = stripWhitespace)
 }
 
 getTermMatrix <- function(corpus) {
@@ -50,3 +53,28 @@ getTermMatrix <- function(corpus) {
 getTermFreq <- function(term.matrix, low.freq = 0, high.freq = Inf) {
   return(findFreqTerms(term.matrix, lowfreq = low.freq, highfreq = high.freq))
 }
+
+BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+
+getBigramTDM <- function(corpus) {
+  # get all 1-gram and 2-gram word counts
+  return(TermDocumentMatrix(corpus, control = list(tokenize = BigramTokenizer)))
+}
+
+TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))
+
+getTrigramTDM <- function(corpus) {
+  # get all 1-gram and 2-gram word counts
+  return(TermDocumentMatrix(corpus, control = list(tokenize = TrigramTokenizer)))
+}
+
+# convert to data.table
+convertTDMtoDataTable <- function(tdm) {
+  dt <- as.data.table(as.data.frame(as.matrix(tdm)), keep.rownames=TRUE)
+  setkey(dt, rn)
+  return (dt)
+}
+
+
+
+
