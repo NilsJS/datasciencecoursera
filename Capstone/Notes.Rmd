@@ -26,6 +26,8 @@ library(tau)
 library(class)
 library(data.table)
 library(RWeka)
+
+options(scipen=999)  # Don't use scientific notation
 ```
 
 ```{r load source code, message=FALSE, warning=FALSE}
@@ -69,9 +71,8 @@ readFileLines("./extracts/en_US.twitter.extract.txt")
 # Read sample corpus
 #source.dir <- "./Coursera-SwiftKey/final/en_US/"
 source.dir <- "./extracts"
-language <- "english"
-docs.en.sample <- applyTransformations(corpus = readCorpus(source.dir, language),
-                                       language = language)
+docs.en.sample <- applyTransformations(corpus = readCorpus(source.dir, "english"),
+                                       language = "english")
 ```
 
 ```{r}
@@ -111,6 +112,9 @@ ft.dt <- convertTDMtoDataTable(docs.en.tdm[ft, 1:3])
 ft.dt$total <- ft.dt[, 2, with=F] + ft.dt[, 3, with=F] + ft.dt[, 4, with=F]
 #ft100 <- subset(ft.dt, total >= 100)
 ft.dt.top100 <- head(arrange(ft.dt, desc(total)), 100)
+
+ft.dt.top100.num.docs <- sum(ft.dt.top100$total)
+ft.dt.num.docs <- sum(ft.dt$total)
 ```
 
 ```{r echo=FALSE}
@@ -181,12 +185,14 @@ pander(head(arrange(trigram.dt, desc(total)), 10),
 
 3. How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%? 
 
-According to wikipedia, the (corpus of the english language)[https://en.wikipedia.org/wiki/Most_common_words_in_English] has more than **a billion words**.  
+According to wikipedia, the [corpus of the english language](https://en.wikipedia.org/wiki/Most_common_words_in_English) has more than **a billion words**.  The same article also states that the top 100 most frequent words account for 50% of all the words in the Oxford English Corpus
 
-Our dictionary has `r length(ft)` distinct words, based on a corpus of `r sum(ft.dt$total)` words in total (the complete text).  The top 100 words covers `r `
+Our dictionary has `r length(ft)` distinct words, based on a corpus of `r ft.dt.num.docs` words in total (the complete text).  The top 100 words cover `r ft.dt.top100.num.docs` / `r ft.dt.num.docs` = **`r percent(ft.dt.top100.num.docs/ft.dt.num.docs)`** of the corpus. 
 
 
-4. How do you evaluate how many of the words come from foreign languages? 
+4. How do you evaluate how many of the words come from foreign languages?
+
+I'm using [aspell](http://aspell.net/win32/) to filter out words that do not come from english.
 
 5. Can you think of a way to increase the coverage?
 
