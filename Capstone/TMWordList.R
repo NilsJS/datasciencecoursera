@@ -30,9 +30,15 @@ readCorpus <- function(dir, language = "english") {
 }
 
 applyTransformations <- function(corpus, language = "english") {
-  profanity.file.name <- str_c("./lib/profanities_",language,".txt")
-  profanities <- readFileLines(profanity.file.name)
-
+  print("Reading profanities...")
+  profane.custom <- readFileLines(str_c("./lib/profanities_",language,".txt"))
+  offensive.1 <- readFileLines("./scowl-2015.08.24/misc/offensive.1")
+  offensive.2 <- readFileLines("./scowl-2015.08.24/misc/offensive.2")
+  profane.1 <- readFileLines("./scowl-2015.08.24/misc/profane.1")
+  profane.3 <- readFileLines("./scowl-2015.08.24/misc/profane.3")
+  
+  profanities <- c(offensive.1, offensive.2, profane.1, profane.3, profane.custom)
+  
   print(str_c("Applying transformations on '", language, "' corpus"))
   return(tm_map(tm_map(tm_map(tm_map(tm_map(tm_map(tm_map(
          corpus, 

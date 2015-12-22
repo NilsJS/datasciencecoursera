@@ -55,6 +55,9 @@ readCorpus
 
 **Note**: I have a custom profanity dictionary that I use for word removal.  This is applied though the removeWords TM transformation.
 
+I'm using the profanity words from the [SCOWL](http://wordlist.aspell.net/) dictionary.
+
+
 ```{r}
 applyTransformations
 ```
@@ -83,7 +86,7 @@ docs.en.sample[[1]]$content
 
 # Task 2: Exploratory Analysis
 
-```{r Reading full Engligh Corpus, cache=F}
+```{r Reading full Engligh Corpus, cache=T}
 # Read full English corpus
 source.dir <- "./Coursera-SwiftKey/extract/en_US/"
 language <- "english"
@@ -192,7 +195,7 @@ Our dictionary has `r length(ft)` distinct words, based on a corpus of `r ft.dt.
 
 4. How do you evaluate how many of the words come from foreign languages?
 
-I'm using [aspell](http://aspell.net/win32/) to filter out words that do not come from english.
+I'm using the dictionary from [SCOWL](http://wordlist.aspell.net/), with an english dictionary of size 60 ([README](http://wordlist.aspell.net/scowl-readme/)) to filter the words that only occur in english.
 
 5. Can you think of a way to increase the coverage?
 
