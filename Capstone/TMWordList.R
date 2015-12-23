@@ -6,20 +6,61 @@ require(class)
 require(data.table)
 require(RWeka)
 
-readFileLines = function(file.name, num.lines = -1) {
+
+readFileLines = function(file.name, num.lines = -1, format = "UTF-8") {
   print(str_c("Reading file: ", file.name))
-  lines <-vector()
+  con <- file(file.name, "r", encoding = format) 
+  lines <- readLines(con, num.lines)
+  close(con)
+  return(lines)
+}
+
+readAndTransformFile <- function(file.name, profanities, stopwrds, num.lines = -1) {
+  print(str_c("Reading file for tranfomation: ", file.name))
   con <- file(file.name, "r") 
   ln <- 0
-  line <- readLines(con, 1)
+  lines <- list()
+  line <- readLines(con, 1, encoding = "UTF-8")
   while (!is.null(line) & length(line) > 0 & (num.lines < 0 | ln < num.lines)) {
     ln <- ln + 1
+    
+    # Transform line
+    line <- removeWords(line, stopwrds)
+    line <- removeWords(line, profanities)
+    line <- removeNumbers(line)
+    line <- tolower(line) 
+    line <- stemDocument(line)
+    line <- stripWhitespace(line)
+    line <- removePunctuation(line)
+      
     lines[ln] <- line
     line <- readLines(con, 1)
   }
   close(con)
   return(lines)
 }
+
+readAndTransformCorpus <- function(dir.name, language = "english"){
+  #  List of profanities
+  profane.custom <- readFileLines(str_c("./lib/profanities_",language,".txt"))
+  offensive.1 <- readFileLines("./scowl-2015.08.24/misc/offensive.1")
+  offensive.2 <- readFileLines("./scowl-2015.08.24/misc/offensive.2")
+  profane.1 <- readFileLines("./scowl-2015.08.24/misc/profane.1")
+  profane.3 <- readFileLines("./scowl-2015.08.24/misc/profane.3")
+  profanities <- c(offensive.1, offensive.2, profane.1, profane.3, profane.custom)
+  # Stopwords
+  sw <- stopwords(language)
+
+  file.names <- list.files(path=dir.name, full.names = TRUE)
+  corpus <- list()  # Corpus is just a list of line lists
+  for(fn in file.names) {
+    corpus[fn] <- list(readAndTransformFile(fn, profanities, sw))
+  }
+
+  return(corpus)
+}
+
+
 
 readCorpus <- function(dir, language = "english") {
   print(str_c("Reading corpus from directory: ", source.dir))
